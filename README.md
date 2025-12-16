@@ -1,4 +1,6 @@
-# Matrix
+# Claude Matrix
+
+#### NOT a oficial Anthropic tool
 
 **Persistent memory system for Claude Code** - Learn from past solutions, avoid repeated mistakes.
 

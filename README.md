@@ -13,6 +13,14 @@ Claude Code is stateless - every session starts fresh. Matrix fixes this by:
 - **Building knowledge** - Solutions improve with feedback (reward system)
 - **Context awareness** - Solutions tagged by scope (global/stack/repo)
 
+## Screenshots
+
+### Checking Matrix (matrix_recall)
+<img width="1068" alt="Matrix recall in action" src="https://github.com/user-attachments/assets/bccbb0d2-f84d-4b92-b444-16a2acca24cc" />
+
+### Rewarding Solutions (matrix_reward)
+<img width="1582" alt="Matrix reward feedback" src="https://github.com/user-attachments/assets/5e818c6b-0652-42f6-8f0d-03579ac955cc" />
+
 ## Features
 
 - **Semantic search** - Find solutions by meaning, not keywords

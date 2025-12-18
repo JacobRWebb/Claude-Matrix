@@ -37,13 +37,20 @@ export function list(args: string[]): void {
   const offset = (page - 1) * limit;
   const db = getDb();
 
+  // Get total count for pagination (hoisted for navigation hint)
+  const tableMap: Record<ListType, string> = {
+    solutions: 'solutions',
+    failures: 'failures',
+    repos: 'repos',
+  };
+  const countResult = db.query(`SELECT COUNT(*) as total FROM ${tableMap[type]}`).get() as { total: number };
+  const total = countResult.total;
+  const totalPages = Math.ceil(total / limit);
+
   console.log(`\n${bold(`Listing ${type}`)} ${dim(`(page ${page})`)}\n`);
 
   switch (type) {
     case 'solutions': {
-      const countResult = db.query('SELECT COUNT(*) as total FROM solutions').get() as { total: number };
-      const total = countResult.total;
-      const totalPages = Math.ceil(total / limit);
 
       const rows = db.query(`
         SELECT id, problem, scope, score, uses, created_at
@@ -74,10 +81,6 @@ export function list(args: string[]): void {
     }
 
     case 'failures': {
-      const countResult = db.query('SELECT COUNT(*) as total FROM failures').get() as { total: number };
-      const total = countResult.total;
-      const totalPages = Math.ceil(total / limit);
-
       const rows = db.query(`
         SELECT id, error_type, error_message, occurrences, root_cause, created_at
         FROM failures
@@ -106,10 +109,6 @@ export function list(args: string[]): void {
     }
 
     case 'repos': {
-      const countResult = db.query('SELECT COUNT(*) as total FROM repos').get() as { total: number };
-      const total = countResult.total;
-      const totalPages = Math.ceil(total / limit);
-
       const rows = db.query(`
         SELECT id, name, path, languages, frameworks, patterns, updated_at
         FROM repos
@@ -140,7 +139,7 @@ export function list(args: string[]): void {
   }
 
   // Navigation hint
-  if (page > 1 || offset + limit < 1000) {
+  if (totalPages > 1) {
     console.log(dim(`\nUse --page=N to navigate`));
   }
 

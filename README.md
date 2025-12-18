@@ -319,8 +319,6 @@ cp ~/.claude/matrix/completions/matrix.fish ~/.config/fish/completions/
 │   ├── matrix.bash
 │   ├── matrix.zsh
 │   └── matrix.fish
-├── homebrew/                 # Homebrew formula
-│   └── Formula/matrix.rb
 ├── docs/                     # Documentation
 ├── templates/
 │   └── CLAUDE.md             # Template for users

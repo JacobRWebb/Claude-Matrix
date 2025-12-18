@@ -65,11 +65,14 @@ async function setupDirectory(): Promise<boolean> {
   // Clone repository
   info('Cloning Matrix repository...');
   try {
-    await $`git clone ${REPO_URL} ${MATRIX_DIR}`.quiet();
+    await $`git clone ${REPO_URL} ${MATRIX_DIR}`;
     success('Repository cloned');
     return true;
-  } catch (err) {
-    error(`Failed to clone repository: ${err}`);
+  } catch (err: any) {
+    error('Failed to clone repository');
+    if (err.stderr) {
+      console.log(dim(err.stderr.toString().trim()));
+    }
     return false;
   }
 }
@@ -77,7 +80,7 @@ async function setupDirectory(): Promise<boolean> {
 async function installDeps(): Promise<boolean> {
   info('Installing dependencies...');
   try {
-    const result = await $`cd ${MATRIX_DIR} && bun install`.quiet();
+    await $`cd ${MATRIX_DIR} && bun install`.quiet();
     success('Dependencies installed');
     return true;
   } catch (err) {

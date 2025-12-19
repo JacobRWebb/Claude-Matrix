@@ -1,4 +1,4 @@
-import { getDb, embeddingToBuffer } from '../db/client.js';
+import { getDb, embeddingToBuffer, searchSimilarSolutions } from '../db/client.js';
 import { getEmbedding } from '../embeddings/local.js';
 import { randomUUID } from 'crypto';
 import { fingerprintRepo, getOrCreateRepo } from '../repo/index.js';
@@ -13,10 +13,11 @@ interface StoreInput {
 
 interface StoreResult {
   id: string;
-  status: 'stored';
+  status: 'stored' | 'duplicate';
   problem: string;
   scope: string;
   tags: string[];
+  similarity?: number;
 }
 
 export async function matrixStore(input: StoreInput): Promise<StoreResult> {
@@ -29,6 +30,23 @@ export async function matrixStore(input: StoreInput): Promise<StoreResult> {
 
   // Generate embedding for semantic search
   const embedding = await getEmbedding(input.problem);
+
+  // Check for duplicates (>0.9 similarity)
+  const duplicates = searchSimilarSolutions(embedding, 1, 0.9);
+  if (duplicates.length > 0 && duplicates[0]!.similarity > 0.9) {
+    const existing = db.query('SELECT id, problem FROM solutions WHERE id = ?')
+      .get(duplicates[0]!.id) as { id: string; problem: string };
+
+    return {
+      id: existing.id,
+      status: 'duplicate',
+      problem: existing.problem.slice(0, 100) + (existing.problem.length > 100 ? '...' : ''),
+      scope: input.scope,
+      tags: input.tags || [],
+      similarity: Math.round(duplicates[0]!.similarity * 1000) / 1000,
+    };
+  }
+
   const embBuffer = embeddingToBuffer(embedding);
 
   const context = JSON.stringify({

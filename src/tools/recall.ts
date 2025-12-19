@@ -78,7 +78,16 @@ export async function matrixRecall(input: RecallInput): Promise<RecallResult> {
   const matches: SolutionMatch[] = [];
 
   for (const row of rows) {
-    const embedding = bufferToEmbedding(row.problem_embedding);
+    let embedding: Float32Array;
+    try {
+      embedding = bufferToEmbedding(row.problem_embedding);
+      if (embedding.length !== 384) {
+        continue; // Skip dimension mismatch
+      }
+    } catch {
+      continue; // Skip corrupted embeddings
+    }
+
     let similarity = cosineSimilarity(queryEmbedding, embedding);
     let contextBoost: 'same_repo' | 'similar_stack' | undefined;
 
@@ -99,6 +108,9 @@ export async function matrixRecall(input: RecallInput): Promise<RecallResult> {
         }
       }
     }
+
+    // Cap boosted similarity to prevent >1.0 scores
+    similarity = Math.min(0.95, similarity);
 
     if (similarity >= minScore) {
       const totalOutcomes = row.successes + row.failures;

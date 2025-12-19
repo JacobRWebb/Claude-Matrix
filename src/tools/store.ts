@@ -33,7 +33,7 @@ export async function matrixStore(input: StoreInput): Promise<StoreResult> {
 
   // Check for duplicates (>0.9 similarity)
   const duplicates = searchSimilarSolutions(embedding, 1, 0.9);
-  if (duplicates.length > 0 && duplicates[0]!.similarity > 0.9) {
+  if (duplicates.length > 0) {
     const existing = db.query('SELECT id, problem FROM solutions WHERE id = ?')
       .get(duplicates[0]!.id) as { id: string; problem: string };
 

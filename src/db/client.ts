@@ -70,11 +70,16 @@ export function searchSimilarSolutions(
   const results: Array<{ id: string; similarity: number }> = [];
 
   for (const row of rows) {
-    const embedding = bufferToEmbedding(row.problem_embedding);
-    const similarity = cosineSimilarity(queryEmbedding, embedding);
+    try {
+      const embedding = bufferToEmbedding(row.problem_embedding);
+      if (embedding.length !== 384) continue;
+      const similarity = cosineSimilarity(queryEmbedding, embedding);
 
-    if (similarity >= minScore) {
-      results.push({ id: row.id, similarity });
+      if (similarity >= minScore) {
+        results.push({ id: row.id, similarity });
+      }
+    } catch {
+      continue;
     }
   }
 
@@ -98,11 +103,16 @@ export function searchSimilarFailures(
   const results: Array<{ id: string; similarity: number }> = [];
 
   for (const row of rows) {
-    const embedding = bufferToEmbedding(row.error_embedding);
-    const similarity = cosineSimilarity(queryEmbedding, embedding);
+    try {
+      const embedding = bufferToEmbedding(row.error_embedding);
+      if (embedding.length !== 384) continue;
+      const similarity = cosineSimilarity(queryEmbedding, embedding);
 
-    if (similarity >= minScore) {
-      results.push({ id: row.id, similarity });
+      if (similarity >= minScore) {
+        results.push({ id: row.id, similarity });
+      }
+    } catch {
+      continue;
     }
   }
 

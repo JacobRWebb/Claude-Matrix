@@ -23,9 +23,9 @@ function parseArgs(args: string[]): ListOptions {
 
   for (const arg of args) {
     if (arg.startsWith('--page=')) {
-      page = parseInt(arg.split('=')[1], 10) || 1;
+      page = parseInt(arg.split('=')[1] ?? '1', 10) || 1;
     } else if (arg.startsWith('--limit=')) {
-      limit = parseInt(arg.split('=')[1], 10) || 20;
+      limit = parseInt(arg.split('=')[1] ?? '20', 10) || 20;
     }
   }
 

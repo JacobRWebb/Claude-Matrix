@@ -27,7 +27,7 @@ async function checkBun(): Promise<boolean> {
   try {
     const result = await $`bun --version`.quiet();
     const version = result.text().trim();
-    const [major] = version.split('.').map(Number);
+    const major = Number(version.split('.')[0]) || 0;
 
     if (major < 1) {
       error(`Bun version ${version} is too old. Required: >= 1.0.0`);

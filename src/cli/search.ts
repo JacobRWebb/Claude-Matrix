@@ -16,11 +16,11 @@ function parseArgs(args: string[]): SearchOptions {
 
   for (const arg of args) {
     if (arg.startsWith('--limit=')) {
-      limit = parseInt(arg.split('=')[1], 10) || 5;
+      limit = parseInt(arg.split('=')[1] ?? '5', 10) || 5;
     } else if (arg.startsWith('--min-score=')) {
-      minScore = parseFloat(arg.split('=')[1]) || 0.3;
+      minScore = parseFloat(arg.split('=')[1] ?? '0.3') || 0.3;
     } else if (arg.startsWith('--scope=')) {
-      const scope = arg.split('=')[1];
+      const scope = arg.split('=')[1] ?? '';
       if (['all', 'repo', 'stack', 'global'].includes(scope)) {
         scopeFilter = scope as typeof scopeFilter;
       }

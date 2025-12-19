@@ -1,12 +1,14 @@
-import { pipeline, type Pipeline } from '@xenova/transformers';
+import { pipeline } from '@xenova/transformers';
 
 const MODEL_NAME = 'Xenova/all-MiniLM-L6-v2';
 const EMBEDDING_DIM = 384;
 
-let embedder: Pipeline | null = null;
-let loadingPromise: Promise<Pipeline> | null = null;
+type Embedder = Awaited<ReturnType<typeof pipeline>>;
 
-async function loadEmbedder(): Promise<Pipeline> {
+let embedder: Embedder | null = null;
+let loadingPromise: Promise<Embedder> | null = null;
+
+async function loadEmbedder(): Promise<Embedder> {
   if (embedder) return embedder;
 
   if (loadingPromise) return loadingPromise;
@@ -27,7 +29,8 @@ export async function getEmbedding(text: string): Promise<Float32Array> {
   // Truncate very long texts (model has 256 token limit)
   const truncated = text.slice(0, 2000);
 
-  const output = await model(truncated, {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const output = await (model as any)(truncated, {
     pooling: 'mean',
     normalize: true,
   });
@@ -43,7 +46,8 @@ export async function getEmbeddings(texts: string[]): Promise<Float32Array[]> {
 
   for (const text of texts) {
     const truncated = text.slice(0, 2000);
-    const output = await model(truncated, {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const output = await (model as any)(truncated, {
       pooling: 'mean',
       normalize: true,
     });

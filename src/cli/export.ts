@@ -14,14 +14,14 @@ function parseArgs(args: string[]): ExportOptions {
 
   for (const arg of args) {
     if (arg.startsWith('--format=')) {
-      const f = arg.split('=')[1];
+      const f = arg.split('=')[1] ?? '';
       if (f === 'json' || f === 'csv') {
         format = f;
       }
     } else if (arg.startsWith('--output=') || arg.startsWith('-o=')) {
-      output = arg.split('=')[1];
+      output = arg.split('=')[1] ?? null;
     } else if (arg.startsWith('--type=')) {
-      const t = arg.split('=')[1];
+      const t = arg.split('=')[1] ?? '';
       if (['all', 'solutions', 'failures', 'repos'].includes(t)) {
         type = t as typeof type;
       }
@@ -99,7 +99,13 @@ export async function exportDb(args: string[]): Promise<void> {
       return;
     }
 
-    const columns = Object.keys(rows[0]);
+    const firstRow = rows[0];
+    if (!firstRow) {
+      console.log(dim('No data to export'));
+      return;
+    }
+
+    const columns = Object.keys(firstRow);
     content = toCSV(rows, columns);
   }
 

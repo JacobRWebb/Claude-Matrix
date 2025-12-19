@@ -85,22 +85,23 @@ export function printTable(
 
   // Print header
   const header = columns
-    .map((col) => bold(col.padEnd(widths[col])))
+    .map((col) => bold(col.padEnd(widths[col] ?? 0)))
     .join('  ');
   console.log(header);
   console.log(
-    columns.map((col) => '─'.repeat(widths[col])).join('──')
+    columns.map((col) => '─'.repeat(widths[col] ?? 0)).join('──')
   );
 
   // Print rows
   for (const row of rows) {
     const line = columns
       .map((col) => {
+        const colWidth = widths[col] ?? 0;
         let val = String(row[col] ?? '');
-        if (truncate && val.length > widths[col]) {
-          val = val.slice(0, widths[col] - 1) + '…';
+        if (truncate && val.length > colWidth) {
+          val = val.slice(0, colWidth - 1) + '…';
         }
-        return val.padEnd(widths[col]);
+        return val.padEnd(colWidth);
       })
       .join('  ');
     console.log(line);

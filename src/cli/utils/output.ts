@@ -226,7 +226,16 @@ export function printTable(
           val = stripped.slice(0, w - 1) + '…';
         }
         const align = col.align ?? 'left';
-        const padded = align === 'right' ? padStart(val, w) : padEnd(val, w);
+        let padded: string;
+        if (align === 'right') {
+          padded = padStart(val, w);
+        } else if (align === 'center') {
+          const leftPad = Math.floor((w - visibleWidth(val)) / 2);
+          const rightPad = Math.max(0, w - leftPad - visibleWidth(val));
+          padded = ' '.repeat(leftPad) + val + ' '.repeat(rightPad);
+        } else {
+          padded = padEnd(val, w);
+        }
         return ' ' + padded + ' ';
       }).join(muted(box.vertical)) +
       muted(box.vertical);

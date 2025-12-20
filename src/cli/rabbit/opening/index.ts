@@ -49,24 +49,19 @@ export async function runOpeningScene(): Promise<OpeningResult> {
 
   let animationInterval: ReturnType<typeof setInterval> | null = null;
 
-  // Start animation loop
-  animationInterval = setInterval(() => {
-    if (state.scene === 'chase') {
-      state = updateTerminalSize(state);
-      state = tickPlayer(state);
-      state = tickRabbit(state);
-      tickRain(state.width, state.height);
-      render(state);
-
-      // Check for transition to scene 2
-      if (state.scene === 'transition') {
-        cleanup();
-        resolveWith('transition');
-      }
-    }
-  }, 50);  // ~20 FPS for smoother animation
-
+  // Create promise first to avoid race condition with resolveWith
   let resolveWith: (result: OpeningResult) => void;
+  const resultPromise = new Promise<OpeningResult>((resolve) => {
+    resolveWith = resolve;
+  });
+
+  const onResize = () => {
+    state = updateTerminalSize(state);
+    if (state.scene === 'chase') {
+      initRain(state.width, state.height);
+      render(state);
+    }
+  };
 
   const cleanup = () => {
     if (animationInterval) {
@@ -74,6 +69,7 @@ export async function runOpeningScene(): Promise<OpeningResult> {
       animationInterval = null;
     }
     process.stdin.removeListener('data', onKeypress);
+    process.stdout.removeListener('resize', onResize);
     if (process.stdin.isTTY) {
       process.stdin.setRawMode(false);
     }
@@ -124,17 +120,24 @@ export async function runOpeningScene(): Promise<OpeningResult> {
   };
 
   process.stdin.on('data', onKeypress);
+  process.stdout.on('resize', onResize);
 
-  // Handle terminal resize
-  process.stdout.on('resize', () => {
-    state = updateTerminalSize(state);
+  // Start animation loop
+  animationInterval = setInterval(() => {
     if (state.scene === 'chase') {
-      initRain(state.width, state.height);
+      state = updateTerminalSize(state);
+      state = tickPlayer(state);
+      state = tickRabbit(state);
+      tickRain(state.width, state.height);
       render(state);
-    }
-  });
 
-  return new Promise<OpeningResult>((resolve) => {
-    resolveWith = resolve;
-  });
+      // Check for transition to scene 2
+      if (state.scene === 'transition') {
+        cleanup();
+        resolveWith('transition');
+      }
+    }
+  }, 50);  // ~20 FPS for smoother animation
+
+  return resultPromise;
 }

@@ -70,10 +70,11 @@ function parseArgs(args: string[]): MergeOptions {
 
 async function promptUser(question: string): Promise<string> {
   process.stdout.write(question);
-  for await (const line of console) {
-    return line.trim().toLowerCase();
-  }
-  return '';
+  return new Promise((resolve) => {
+    process.stdin.once('data', (data) => {
+      resolve(data.toString().trim().toLowerCase());
+    });
+  });
 }
 
 function printMergePair(
@@ -369,7 +370,7 @@ export async function merge(args: string[]): Promise<void> {
       i--;
       continue;
     } else {
-      muted('  Skipped');
+      console.log(muted('  Skipped'));
       skipped++;
     }
 

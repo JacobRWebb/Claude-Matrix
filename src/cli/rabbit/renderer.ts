@@ -91,6 +91,7 @@ let drops: RainDrop[] = [];
 let rainDensity = 0.2;  // Default density
 
 function randomChar(): string {
+  if (KATAKANA.length === 0) return '*';
   return KATAKANA[Math.floor(Math.random() * KATAKANA.length)]!;
 }
 
@@ -244,7 +245,8 @@ function renderPortals(buffer: Cell[][], state: GameState): void {
     setCell(buffer, px + 1, py, ']', glitchColor(bracketColor));
 
     // Label below
-    const label = PORTALS.find(p => p.id === portal.id)!.name;
+    const portalData = PORTALS.find(p => p.id === portal.id);
+    const label = portalData?.name ?? '';
     const labelStart = px - Math.floor(label.length / 2);
     const labelColor = portal.visited ? VERY_DIM : DIM;
 

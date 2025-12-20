@@ -69,7 +69,7 @@ function printCard(
   // Top border with ID and match
   const idPart = ` ${id} `;
   const matchPart = ` ${matchPercent} match `;
-  const midDash = box.horizontal.repeat(innerWidth - idPart.length - matchPart.length);
+  const midDash = box.horizontal.repeat(Math.max(0, innerWidth - idPart.length - matchPart.length));
   console.log(
     muted(box.topLeft) +
     muted(box.horizontal) +

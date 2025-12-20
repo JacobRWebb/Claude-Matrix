@@ -133,7 +133,11 @@ export function set(key: string, value: unknown): void {
   }
   const existingValue = target[lastPart];
   if (typeof existingValue === 'number') {
-    target[lastPart] = Number(value);
+    const numValue = Number(value);
+    if (isNaN(numValue)) {
+      throw new Error(`Invalid number value for ${key}: ${value}`);
+    }
+    target[lastPart] = numValue;
   } else if (typeof existingValue === 'boolean') {
     target[lastPart] = value === 'true' || value === true;
   } else {

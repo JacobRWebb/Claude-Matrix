@@ -1,5 +1,6 @@
 import { getDb, bufferToEmbedding, cosineSimilarity } from '../db/index.js';
 import { EMBEDDING_DIM } from '../embeddings/local.js';
+import { get } from '../config/index.js';
 import {
   bold,
   cyan,
@@ -47,7 +48,7 @@ interface MergeCandidate {
 }
 
 function parseArgs(args: string[]): MergeOptions {
-  let threshold = 0.8;
+  let threshold = get<number>('merge.defaultThreshold');
   let type: 'solutions' | 'failures' = 'solutions';
   let dryRun = false;
 

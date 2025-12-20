@@ -13,6 +13,7 @@ ${bold('COMMANDS')}
   ${cyan('search')} ${muted('<query>')}         Search past solutions semantically
   ${cyan('list')} ${muted('[type]')}            List solutions, failures, or repos
   ${cyan('merge')}                   Find and merge duplicate solutions
+  ${cyan('config')}                  View and edit configuration
   ${cyan('stats')}                   Show memory statistics
   ${cyan('export')}                  Export database (JSON/CSV)
   ${cyan('version')}                 Show version
@@ -28,6 +29,12 @@ ${bold('MERGE OPTIONS')}
   ${muted('--type=TYPE')}            solutions or failures
   ${muted('--dry-run')}              Show pairs without prompts
 
+${bold('CONFIG SUBCOMMANDS')}
+  ${muted('list')}                   Show all settings
+  ${muted('get <key>')}              Get a specific value
+  ${muted('set <key> <val>')}        Set a specific value
+  ${muted('reset')}                  Reset to defaults
+
 ${bold('EXAMPLES')}
   ${muted('# Complete setup (for first-time users)')}
   matrix init
@@ -40,6 +47,10 @@ ${bold('EXAMPLES')}
 
   ${muted('# Find duplicate solutions')}
   matrix merge --dry-run
+
+  ${muted('# View/edit configuration')}
+  matrix config
+  matrix config set search.defaultLimit 10
 
   ${muted('# Export to JSON')}
   matrix export --format=json --output=backup.json

@@ -1,4 +1,5 @@
 import { getDb } from '../db/index.js';
+import { get } from '../config/index.js';
 import {
   header,
   muted,
@@ -27,7 +28,7 @@ function parseArgs(args: string[]): ListOptions {
   }
 
   let page = 1;
-  let limit = 20;
+  let limit = get<number>('list.defaultLimit');
 
   for (const arg of args) {
     if (arg.startsWith('--page=')) {

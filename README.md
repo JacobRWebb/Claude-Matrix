@@ -6,6 +6,14 @@
 
 Matrix gives Claude Code long-term memory across sessions and projects through semantic search over your solution history.
 
+## Getting Started
+
+```bash
+matrix follow the white rabbit
+```
+
+Interactive Matrix-themed onboarding that teaches you all the features. Navigate through portals, learn the tools, follow the rabbit.
+
 ## Why Matrix?
 
 Claude Code is stateless - every session starts fresh. Matrix fixes this by:

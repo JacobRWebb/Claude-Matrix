@@ -2,6 +2,23 @@
 
 All notable changes to Claude Matrix are documented here.
 
+## [0.4.0] - 2024-12-20
+
+### Added
+- **Interactive Onboarding** - `matrix follow the white rabbit`
+  - Matrix-themed terminal game for onboarding
+  - Learn all 6 features: SEARCH, STORE, RECALL, REWARD, FAILURE, STATS
+- **Config Command** - `matrix config`
+  - View and edit settings: `list`, `get <key>`, `set <key> <val>`, `reset`
+  - Configurable defaults for search, list, merge, and display
+- **Merge Command** - `matrix merge`
+  - Find and merge duplicate solutions/failures
+  - Options: `--threshold`, `--type`, `--dry-run`
+
+### Changed
+- Search, List, Merge commands now use configurable defaults
+- Help command updated with new commands and examples
+
 ## [0.3.0] - 2024-12-17
 
 ### Added

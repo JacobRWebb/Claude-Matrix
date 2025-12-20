@@ -1,4 +1,5 @@
 import { matrixRecall } from '../tools/index.js';
+import { get } from '../config/index.js';
 import {
   bold,
   cyan,
@@ -23,9 +24,9 @@ interface SearchOptions {
 
 function parseArgs(args: string[]): SearchOptions {
   const queryParts: string[] = [];
-  let limit = 5;
-  let minScore = 0.3;
-  let scopeFilter: 'all' | 'repo' | 'stack' | 'global' = 'all';
+  let limit = get<number>('search.defaultLimit');
+  let minScore = get<number>('search.defaultMinScore');
+  let scopeFilter = get<'all' | 'repo' | 'stack' | 'global'>('search.defaultScope');
 
   for (const arg of args) {
     if (arg.startsWith('--limit=')) {
@@ -62,7 +63,7 @@ function printCard(
   tags: string[],
   contextBoost?: string
 ): void {
-  const width = 70;
+  const width = get<number>('display.cardWidth');
   const innerWidth = width - 2;
 
   // Top border with ID and match

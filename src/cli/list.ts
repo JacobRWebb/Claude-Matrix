@@ -1,5 +1,13 @@
 import { getDb } from '../db/index.js';
-import { bold, cyan, dim, printTable, error, formatDate, formatScore } from './utils/output.js';
+import {
+  header,
+  muted,
+  printTable,
+  printBox,
+  error,
+  formatDate,
+  formatColoredScore,
+} from './utils/output.js';
 
 type ListType = 'solutions' | 'failures' | 'repos';
 
@@ -37,27 +45,32 @@ export function list(args: string[]): void {
   const offset = (page - 1) * limit;
   const db = getDb();
 
-  // Get total count for pagination (hoisted for navigation hint)
+  // Get total count for pagination
   const tableMap: Record<ListType, string> = {
     solutions: 'solutions',
     failures: 'failures',
     repos: 'repos',
   };
-  const countResult = db.query(`SELECT COUNT(*) as total FROM ${tableMap[type]}`).get() as { total: number };
+  const countResult = db
+    .query(`SELECT COUNT(*) as total FROM ${tableMap[type]}`)
+    .get() as { total: number };
   const total = countResult.total;
   const totalPages = Math.ceil(total / limit);
 
-  console.log(`\n${bold(`Listing ${type}`)} ${dim(`(page ${page})`)}\n`);
+  console.log();
 
   switch (type) {
     case 'solutions': {
-
-      const rows = db.query(`
+      const rows = db
+        .query(
+          `
         SELECT id, problem, scope, score, uses, created_at
         FROM solutions
         ORDER BY created_at DESC
         LIMIT ? OFFSET ?
-      `).all(limit, offset) as Array<{
+      `
+        )
+        .all(limit, offset) as Array<{
         id: string;
         problem: string;
         scope: string;
@@ -66,27 +79,39 @@ export function list(args: string[]): void {
         created_at: string;
       }>;
 
-      const formatted = rows.map(row => ({
+      const formatted = rows.map((row) => ({
         id: row.id,
-        problem: row.problem.slice(0, 50) + (row.problem.length > 50 ? '...' : ''),
+        problem: row.problem.slice(0, 45) + (row.problem.length > 45 ? '…' : ''),
         scope: row.scope,
-        score: formatScore(row.score),
+        score: formatColoredScore(row.score),
         uses: row.uses.toString(),
         created: formatDate(row.created_at),
       }));
 
-      printTable(formatted, ['id', 'problem', 'scope', 'score', 'uses', 'created']);
-      console.log(`\n${dim(`Page ${page}/${totalPages} (${total} total)`)}`);
+      printBox(`Solutions ${muted(`(page ${page}/${totalPages})`)}`, [], 70);
+      console.log();
+      printTable(formatted, [
+        { key: 'id', header: 'ID', width: 15 },
+        { key: 'problem', header: 'Problem', width: 45 },
+        { key: 'scope', header: 'Scope', width: 6 },
+        { key: 'score', header: 'Score', align: 'right', width: 6 },
+        { key: 'uses', header: 'Uses', align: 'right', width: 5 },
+        { key: 'created', header: 'Created', width: 12 },
+      ]);
       break;
     }
 
     case 'failures': {
-      const rows = db.query(`
+      const rows = db
+        .query(
+          `
         SELECT id, error_type, error_message, occurrences, root_cause, created_at
         FROM failures
         ORDER BY created_at DESC
         LIMIT ? OFFSET ?
-      `).all(limit, offset) as Array<{
+      `
+        )
+        .all(limit, offset) as Array<{
         id: string;
         error_type: string;
         error_message: string;
@@ -95,26 +120,39 @@ export function list(args: string[]): void {
         created_at: string;
       }>;
 
-      const formatted = rows.map(row => ({
+      const formatted = rows.map((row) => ({
         id: row.id,
         type: row.error_type,
-        message: row.error_message.slice(0, 40) + (row.error_message.length > 40 ? '...' : ''),
+        message:
+          row.error_message.slice(0, 35) +
+          (row.error_message.length > 35 ? '…' : ''),
         occurrences: row.occurrences.toString(),
         created: formatDate(row.created_at),
       }));
 
-      printTable(formatted, ['id', 'type', 'message', 'occurrences', 'created']);
-      console.log(`\n${dim(`Page ${page}/${totalPages} (${total} total)`)}`);
+      printBox(`Failures ${muted(`(page ${page}/${totalPages})`)}`, [], 70);
+      console.log();
+      printTable(formatted, [
+        { key: 'id', header: 'ID', width: 15 },
+        { key: 'type', header: 'Type', width: 8 },
+        { key: 'message', header: 'Message', width: 35 },
+        { key: 'occurrences', header: 'Count', align: 'right', width: 5 },
+        { key: 'created', header: 'Created', width: 12 },
+      ]);
       break;
     }
 
     case 'repos': {
-      const rows = db.query(`
+      const rows = db
+        .query(
+          `
         SELECT id, name, path, languages, frameworks, patterns, updated_at
         FROM repos
         ORDER BY updated_at DESC
         LIMIT ? OFFSET ?
-      `).all(limit, offset) as Array<{
+      `
+        )
+        .all(limit, offset) as Array<{
         id: string;
         name: string;
         path: string;
@@ -124,7 +162,7 @@ export function list(args: string[]): void {
         updated_at: string;
       }>;
 
-      const formatted = rows.map(row => ({
+      const formatted = rows.map((row) => ({
         id: row.id,
         name: row.name,
         languages: JSON.parse(row.languages || '[]').join(', '),
@@ -132,16 +170,29 @@ export function list(args: string[]): void {
         updated: formatDate(row.updated_at),
       }));
 
-      printTable(formatted, ['id', 'name', 'languages', 'frameworks', 'updated']);
-      console.log(`\n${dim(`Page ${page}/${totalPages} (${total} total)`)}`);
+      printBox(`Repos ${muted(`(page ${page}/${totalPages})`)}`, [], 70);
+      console.log();
+      printTable(formatted, [
+        { key: 'id', header: 'ID', width: 15 },
+        { key: 'name', header: 'Name', width: 20 },
+        { key: 'languages', header: 'Languages', width: 20 },
+        { key: 'frameworks', header: 'Frameworks', width: 20 },
+        { key: 'updated', header: 'Updated', width: 12 },
+      ]);
       break;
     }
   }
 
-  // Navigation hint
+  // Pagination info
+  console.log();
+  console.log(muted(`  Page ${page} of ${totalPages} (${total} total)`));
+
   if (totalPages > 1) {
-    console.log(dim(`\nUse --page=N to navigate`));
+    const nav = [];
+    if (page > 1) nav.push(`--page=${page - 1}`);
+    if (page < totalPages) nav.push(`--page=${page + 1}`);
+    console.log(muted(`  Navigate: ${nav.join('  ')}`));
   }
 
-  console.log('');
+  console.log();
 }

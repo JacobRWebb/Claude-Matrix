@@ -1,50 +1,82 @@
 import { matrixStatus } from '../tools/index.js';
-import { bold, cyan, dim, green, yellow, formatDate, formatScore, truncate } from './utils/output.js';
+import {
+  bold,
+  cyan,
+  muted,
+  green,
+  yellow,
+  printBox,
+  formatDate,
+  formatColoredScore,
+  truncate,
+  statusDot,
+  padEnd,
+} from './utils/output.js';
 
 export function stats(): void {
   const result = matrixStatus();
 
-  console.log(`\n${bold('Matrix Memory Statistics')}\n`);
+  console.log();
 
-  // Status
-  console.log(`${cyan('Status:')} ${result.status === 'operational' ? green('operational') : yellow(result.status)}`);
-  console.log(`${cyan('Database:')} ${result.database === 'connected' ? green('connected') : yellow(result.database)}`);
+  // Status section
+  printBox('Matrix Memory', [
+    `Status:    ${statusDot(result.status === 'operational')} ${result.status === 'operational' ? green('operational') : yellow(result.status)}`,
+    `Database:  ${statusDot(result.database === 'connected')} ${result.database === 'connected' ? green('connected') : yellow(result.database)}`,
+  ], 45);
 
-  // Current repo
-  console.log(`\n${bold('Current Repository')}`);
-  console.log(`  ${cyan('Name:')} ${result.currentRepo.name || dim('(not detected)')}`);
+  console.log();
+
+  // Current repo section
+  const repoContent: string[] = [];
+  if (result.currentRepo.name) {
+    repoContent.push(`${cyan(padEnd('Name:', 12))} ${result.currentRepo.name}`);
+  } else {
+    repoContent.push(muted('Not in a repository'));
+  }
+
   if (result.currentRepo.languages.length > 0) {
-    console.log(`  ${cyan('Languages:')} ${result.currentRepo.languages.join(', ')}`);
+    repoContent.push(`${cyan(padEnd('Languages:', 12))} ${result.currentRepo.languages.join(', ')}`);
   }
   if (result.currentRepo.frameworks.length > 0) {
-    console.log(`  ${cyan('Frameworks:')} ${result.currentRepo.frameworks.join(', ')}`);
+    repoContent.push(`${cyan(padEnd('Frameworks:', 12))} ${result.currentRepo.frameworks.join(', ')}`);
   }
   if (result.currentRepo.patterns.length > 0) {
-    console.log(`  ${cyan('Patterns:')} ${result.currentRepo.patterns.join(', ')}`);
+    repoContent.push(`${cyan(padEnd('Patterns:', 12))} ${result.currentRepo.patterns.join(', ')}`);
   }
 
-  // Counts
-  console.log(`\n${bold('Memory Counts')}`);
-  console.log(`  ${cyan('Solutions:')} ${result.stats.solutions}`);
-  console.log(`  ${cyan('Failures:')}  ${result.stats.failures}`);
-  console.log(`  ${cyan('Repos:')}     ${result.stats.repos}`);
+  printBox('Current Repository', repoContent, 55);
+
+  console.log();
+
+  // Memory counts - inline format
+  const countContent = [
+    `${cyan('Solutions')} ${bold(String(result.stats.solutions))}    ` +
+    `${cyan('Failures')} ${bold(String(result.stats.failures))}    ` +
+    `${cyan('Repos')} ${bold(String(result.stats.repos))}`,
+  ];
+  printBox('Memory Counts', countContent, 55);
 
   // Top tags
   if (result.topTags.length > 0) {
-    console.log(`\n${bold('Top Tags')}`);
-    console.log(`  ${result.topTags.join(', ')}`);
+    console.log();
+    printBox('Top Tags', [result.topTags.join('  ')], 55);
   }
 
   // Recent solutions
   if (result.recentSolutions.length > 0) {
-    console.log(`\n${bold('Recent Solutions')}`);
+    console.log();
+    const recentContent: string[] = [];
+
     for (const sol of result.recentSolutions) {
       const date = formatDate(sol.created_at);
-      const score = formatScore(sol.score);
-      console.log(`  ${dim(sol.id)} ${truncate(sol.problem, 50)}`);
-      console.log(`    ${dim(`${sol.scope} | ${score} | ${date}`)}`);
+      const score = formatColoredScore(sol.score);
+      const problem = truncate(sol.problem, 40);
+      recentContent.push(`${muted(sol.id.slice(0, 12))} ${problem}`);
+      recentContent.push(`  ${muted(sol.scope)} ${muted('│')} ${score} ${muted('│')} ${muted(date)}`);
     }
+
+    printBox('Recent Solutions', recentContent, 60);
   }
 
-  console.log('');
+  console.log();
 }

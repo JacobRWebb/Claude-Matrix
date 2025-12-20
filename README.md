@@ -4,6 +4,14 @@
 
 **Persistent memory for Claude Code** - Learn from past solutions, avoid repeated mistakes.
 
+## Getting Started
+
+```bash
+matrix follow the white rabbit
+```
+
+Interactive Matrix-themed onboarding that teaches you all the features. Navigate through portals, learn the tools, follow the rabbit.
+
 ## Why Matrix?
 
 Claude Code is stateless - every session starts fresh. Matrix fixes this:

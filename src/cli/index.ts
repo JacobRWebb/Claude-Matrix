@@ -1,13 +1,22 @@
 import { init } from './init.js';
 import { list } from './list.js';
 import { search } from './search.js';
+import { merge } from './merge.js';
+import { config } from './config.js';
 import { stats } from './stats.js';
 import { exportDb } from './export.js';
 import { version } from './version.js';
 import { printHelp } from './help.js';
 import { error } from './utils/output.js';
+import { isRabbitTrigger, startRabbitHole } from './rabbit.js';
 
 export async function runCli(args: string[]): Promise<void> {
+  // Easter egg: check for "follow the white rabbit" trigger
+  const fullInput = args.join(' ');
+  if (isRabbitTrigger(fullInput)) {
+    return startRabbitHole();
+  }
+
   const command = args[0];
   const subArgs = args.slice(1);
 
@@ -23,6 +32,14 @@ export async function runCli(args: string[]): Promise<void> {
     case 'find':
     case 'recall':
       return search(subArgs);
+
+    case 'merge':
+    case 'dedupe':
+      return merge(subArgs);
+
+    case 'config':
+    case 'cfg':
+      return config(subArgs);
 
     case 'stats':
     case 'status':

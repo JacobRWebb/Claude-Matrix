@@ -147,7 +147,7 @@ async function setupPath(): Promise<boolean> {
   }
 
   const pathLine = `export PATH="$HOME/.claude/matrix/bin:$PATH"`;
-  const pathPattern = /export\s+PATH=.*\.claude\/matrix\/bin/;
+  const pathPattern = /^[^#]*export\s+PATH=.*\.claude\/matrix\/bin/m;
   const shellConfigs = [
     { file: join(home, '.zshrc'), name: 'zsh' },
     { file: join(home, '.bashrc'), name: 'bash' },

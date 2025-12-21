@@ -19,6 +19,7 @@ jobs:
         uses: oven-sh/setup-bun@v2
 
       - name: Fetch and update contributors
+        id: update
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -76,10 +77,30 @@ jobs:
 
           node /tmp/update-contributors.mjs "$CONTRIBUTORS"
 
-      - name: Commit and push if changed
+          # Check if there are changes
+          if git diff --quiet README.md src/cli/rabbit/content.ts; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            # Get new contributor names for branch name
+            NEW_CONTRIBUTORS=$(echo "$CONTRIBUTORS" | jq -r 'join("-")')
+            echo "contributors=$NEW_CONTRIBUTORS" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create PR with changes
+        if: steps.update.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          BRANCH="add-contributors-$(date +%Y%m%d-%H%M%S)"
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git checkout -b "$BRANCH"
           git add README.md src/cli/rabbit/content.ts
-          git diff --staged --quiet || git commit -m "chore: update contributors list"
-          git push
+          git commit -m "chore: update contributors list"
+          git push -u origin "$BRANCH"
+
+          echo "Branch pushed: $BRANCH"
+          echo "Create PR manually at: https://github.com/${{ github.repository }}/pull/new/$BRANCH"

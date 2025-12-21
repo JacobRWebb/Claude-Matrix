@@ -103,11 +103,5 @@ jobs:
           git commit -m "chore: update contributors list"
           git push -u origin "$BRANCH"
 
-          # Ensure skip-changelog label exists
-          gh label create skip-changelog --description "Skip changelog enforcement" --color "fbca04" 2>/dev/null || true
-
-          gh pr create \
-            --title "chore: update contributors list" \
-            --body "Auto-generated PR to update contributors list." \
-            --label "documentation" \
-            --label "skip-changelog"
+          echo "Branch pushed: $BRANCH"
+          echo "Create PR manually at: https://github.com/${{ github.repository }}/pull/new/$BRANCH"

@@ -1,20 +1,33 @@
 import { $ } from 'bun';
-import { existsSync } from 'fs';
+import { existsSync, mkdirSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
+import { createInterface } from 'readline';
 import { getDb } from '../db/index.js';
 import { bold, cyan, dim, green, yellow, red, success, error, info, warn } from './utils/output.js';
 
 const MATRIX_DIR = process.env['MATRIX_DIR'] || join(process.env['HOME'] || '~', '.claude', 'matrix');
-const CLAUDE_MD_PATH = join(process.env['HOME'] || '~', '.claude', 'CLAUDE.md');
-const TEMPLATE_PATH = join(MATRIX_DIR, 'templates', 'CLAUDE.md');
 const REPO_URL = 'https://github.com/ojowwalker77/Claude-Matrix.git';
+
+// Claude Code paths
+const CLAUDE_MD_PATH = join(process.env['HOME'] || '~', '.claude', 'CLAUDE.md');
+const CLAUDE_TEMPLATE_PATH = join(MATRIX_DIR, 'templates', 'CLAUDE.md');
+
+// Cursor paths
+const CURSOR_DIR = join(process.env['HOME'] || '~', '.cursor');
+const CURSOR_MCP_PATH = join(CURSOR_DIR, 'mcp.json');
+const CURSOR_RULES_PATH = join(process.env['HOME'] || '~', '.cursorrules');
+const CURSOR_MCP_TEMPLATE = join(MATRIX_DIR, 'templates', 'cursor-mcp.json');
+const CURSOR_RULES_TEMPLATE = join(MATRIX_DIR, 'templates', '.cursorrules');
+
+type EditorChoice = 'claude' | 'cursor' | 'both';
 
 interface InitOptions {
   force: boolean;
   skipMcp: boolean;
   skipPath: boolean;
-  skipClaudeMd: boolean;
+  skipRules: boolean;
+  editor?: EditorChoice;
 }
 
 function parseArgs(args: string[]): InitOptions {
@@ -22,8 +35,44 @@ function parseArgs(args: string[]): InitOptions {
     force: args.includes('--force') || args.includes('-f'),
     skipMcp: args.includes('--skip-mcp'),
     skipPath: args.includes('--skip-path'),
-    skipClaudeMd: args.includes('--skip-claude-md'),
+    skipRules: args.includes('--skip-rules') || args.includes('--skip-claude-md'),
+    editor: undefined,
   };
+}
+
+async function promptEditor(): Promise<EditorChoice> {
+  const rl = createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  console.log(`\n${bold('Select your editor:')}\n`);
+  console.log(`  ${cyan('1.')} Claude Code ${dim('(official Anthropic CLI)')}`);
+  console.log(`  ${cyan('2.')} Cursor ${dim('(AI-powered IDE)')}`);
+  console.log(`  ${cyan('3.')} Both ${dim('(configure for both editors)')}`);
+  console.log('');
+
+  return new Promise((resolve) => {
+    const askQuestion = () => {
+      rl.question(`${bold('Enter choice')} ${dim('[1/2/3]')}: `, (answer) => {
+        const choice = answer.trim().toLowerCase();
+        if (choice === '1' || choice === 'claude') {
+          rl.close();
+          resolve('claude');
+        } else if (choice === '2' || choice === 'cursor') {
+          rl.close();
+          resolve('cursor');
+        } else if (choice === '3' || choice === 'both') {
+          rl.close();
+          resolve('both');
+        } else {
+          console.log(yellow('Please enter 1, 2, or 3'));
+          askQuestion();
+        }
+      });
+    };
+    askQuestion();
+  });
 }
 
 async function checkBun(): Promise<boolean> {
@@ -57,7 +106,6 @@ async function checkClaudeCli(): Promise<boolean> {
 }
 
 async function setupDirectory(): Promise<boolean> {
-  // Check if matrix directory exists
   if (existsSync(MATRIX_DIR)) {
     if (existsSync(join(MATRIX_DIR, 'package.json'))) {
       success(`Matrix directory exists at ${dim(MATRIX_DIR)}`);
@@ -65,7 +113,6 @@ async function setupDirectory(): Promise<boolean> {
     }
   }
 
-  // Clone repository
   info('Cloning Matrix repository...');
   try {
     await $`git clone ${REPO_URL} ${MATRIX_DIR}`;
@@ -95,7 +142,6 @@ async function installDeps(): Promise<boolean> {
 function initDatabase(): boolean {
   info('Initializing database...');
   try {
-    // This will create the database and run schema
     const db = getDb();
     success('Database initialized');
     return true;
@@ -105,7 +151,8 @@ function initDatabase(): boolean {
   }
 }
 
-async function registerMcp(): Promise<boolean> {
+// Claude Code specific functions
+async function registerMcpClaude(): Promise<boolean> {
   info('Registering MCP server with Claude Code...');
 
   const hasClaudeCli = await checkClaudeCli();
@@ -113,18 +160,16 @@ async function registerMcp(): Promise<boolean> {
     warn('Claude CLI not found - skipping MCP registration');
     console.log(dim('Install Claude Code and run manually:'));
     console.log(dim(`  claude mcp add matrix -s user -- bun run ${MATRIX_DIR}/src/index.ts`));
-    return true; // Not a failure, just skip
+    return true;
   }
 
   try {
-    // Check if already registered
     const listResult = await $`claude mcp list`.quiet();
     if (listResult.text().includes('matrix')) {
       success('MCP server already registered');
       return true;
     }
 
-    // Register
     await $`claude mcp add matrix -s user -- bun run ${MATRIX_DIR}/src/index.ts`.quiet();
     success('MCP server registered');
     return true;
@@ -132,8 +177,123 @@ async function registerMcp(): Promise<boolean> {
     warn(`MCP registration had issues: ${err}`);
     console.log(dim('You may need to register manually:'));
     console.log(dim(`  claude mcp add matrix -s user -- bun run ${MATRIX_DIR}/src/index.ts`));
-    return true; // Continue anyway
+    return true;
   }
+}
+
+async function setupClaudeMd(): Promise<boolean> {
+  info('Setting up CLAUDE.md template...');
+
+  if (!existsSync(CLAUDE_TEMPLATE_PATH)) {
+    warn('Template file not found, skipping');
+    return true;
+  }
+
+  const template = await Bun.file(CLAUDE_TEMPLATE_PATH).text();
+
+  if (existsSync(CLAUDE_MD_PATH)) {
+    const existing = await Bun.file(CLAUDE_MD_PATH).text();
+
+    if (existing.includes('Claude Matrix - Tooling System')) {
+      success('CLAUDE.md already contains Matrix instructions');
+      return true;
+    }
+
+    const updated = existing + '\n\n' + template;
+    await Bun.write(CLAUDE_MD_PATH, updated);
+    success('Matrix instructions appended to CLAUDE.md');
+  } else {
+    await Bun.write(CLAUDE_MD_PATH, template);
+    success('CLAUDE.md created with Matrix instructions');
+  }
+
+  return true;
+}
+
+// Cursor specific functions
+async function registerMcpCursor(): Promise<boolean> {
+  info('Configuring MCP server for Cursor...');
+
+  try {
+    // Create .cursor directory if it doesn't exist
+    if (!existsSync(CURSOR_DIR)) {
+      mkdirSync(CURSOR_DIR, { recursive: true });
+      success(`Created ${dim(CURSOR_DIR)}`);
+    }
+
+    // Read template
+    if (!existsSync(CURSOR_MCP_TEMPLATE)) {
+      warn('Cursor MCP template not found');
+      console.log(dim('Create manually at ~/.cursor/mcp.json'));
+      return true;
+    }
+
+    const templateContent = await Bun.file(CURSOR_MCP_TEMPLATE).text();
+    const template = JSON.parse(templateContent);
+
+    // Replace ${userHome} placeholder with actual home directory
+    const home = process.env['HOME'] || homedir();
+    const mcpConfig = JSON.parse(
+      JSON.stringify(template).replace(/\$\{userHome\}/g, home)
+    );
+
+    // Check if mcp.json already exists
+    if (existsSync(CURSOR_MCP_PATH)) {
+      const existing = await Bun.file(CURSOR_MCP_PATH).text();
+      const existingConfig = JSON.parse(existing);
+
+      // Check if matrix is already configured
+      if (existingConfig.mcpServers?.matrix) {
+        success('MCP server already configured in Cursor');
+        return true;
+      }
+
+      // Merge with existing config
+      existingConfig.mcpServers = existingConfig.mcpServers || {};
+      existingConfig.mcpServers.matrix = mcpConfig.mcpServers.matrix;
+      await Bun.write(CURSOR_MCP_PATH, JSON.stringify(existingConfig, null, 2) + '\n');
+      success('Matrix MCP added to existing Cursor config');
+    } else {
+      // Write new config
+      await Bun.write(CURSOR_MCP_PATH, JSON.stringify(mcpConfig, null, 2) + '\n');
+      success(`MCP config created at ${dim(CURSOR_MCP_PATH)}`);
+    }
+
+    return true;
+  } catch (err) {
+    error(`Failed to configure Cursor MCP: ${err}`);
+    console.log(dim('You may need to configure manually at ~/.cursor/mcp.json'));
+    return false;
+  }
+}
+
+async function setupCursorRules(): Promise<boolean> {
+  info('Setting up Cursor rules...');
+
+  if (!existsSync(CURSOR_RULES_TEMPLATE)) {
+    warn('Cursor rules template not found, skipping');
+    return true;
+  }
+
+  const template = await Bun.file(CURSOR_RULES_TEMPLATE).text();
+
+  if (existsSync(CURSOR_RULES_PATH)) {
+    const existing = await Bun.file(CURSOR_RULES_PATH).text();
+
+    if (existing.includes('Claude Matrix - Tooling System')) {
+      success('.cursorrules already contains Matrix instructions');
+      return true;
+    }
+
+    const updated = existing + '\n\n' + template;
+    await Bun.write(CURSOR_RULES_PATH, updated);
+    success('Matrix instructions appended to .cursorrules');
+  } else {
+    await Bun.write(CURSOR_RULES_PATH, template);
+    success('.cursorrules created with Matrix instructions');
+  }
+
+  return true;
 }
 
 async function setupPath(): Promise<boolean> {
@@ -188,54 +348,55 @@ async function setupPath(): Promise<boolean> {
   return true;
 }
 
-async function setupClaudeMd(): Promise<boolean> {
-  info('Setting up CLAUDE.md template...');
-
-  if (!existsSync(TEMPLATE_PATH)) {
-    warn('Template file not found, skipping');
-    return true;
-  }
-
-  const template = await Bun.file(TEMPLATE_PATH).text();
-
-  // Check if CLAUDE.md exists
-  if (existsSync(CLAUDE_MD_PATH)) {
-    const existing = await Bun.file(CLAUDE_MD_PATH).text();
-
-    // Check if Matrix section already exists
-    if (existing.includes('Matrix Memory System')) {
-      success('CLAUDE.md already contains Matrix instructions');
-      return true;
-    }
-
-    // Append to existing file
-    const updated = existing + '\n\n' + template;
-    await Bun.write(CLAUDE_MD_PATH, updated);
-    success('Matrix instructions appended to CLAUDE.md');
-  } else {
-    // Create new file
-    await Bun.write(CLAUDE_MD_PATH, template);
-    success('CLAUDE.md created with Matrix instructions');
-  }
-
-  return true;
-}
-
 export async function init(args: string[]): Promise<void> {
   const options = parseArgs(args);
 
-  console.log(`\n${bold('Matrix Memory System')} ${dim('- Setup')}\n`);
-  console.log(dim('This will configure Matrix for Claude Code.\n'));
+  console.log(`\n${bold('Claude Matrix - Tooling System')} ${dim('- Setup')}\n`);
 
-  const steps: Array<{ name: string; fn: () => Promise<boolean> | boolean; skip?: boolean }> = [
+  // Prompt for editor choice
+  const editor = await promptEditor();
+  console.log('');
+
+  if (editor === 'claude') {
+    console.log(dim('Configuring Matrix for Claude Code...\n'));
+  } else if (editor === 'cursor') {
+    console.log(dim('Configuring Matrix for Cursor...\n'));
+  } else {
+    console.log(dim('Configuring Matrix for both Claude Code and Cursor...\n'));
+  }
+
+  // Common steps
+  const commonSteps: Array<{ name: string; fn: () => Promise<boolean> | boolean; skip?: boolean }> = [
     { name: 'Check Bun installation', fn: checkBun },
     { name: 'Setup Matrix directory', fn: setupDirectory },
     { name: 'Install dependencies', fn: installDeps },
     { name: 'Initialize database', fn: initDatabase },
-    { name: 'Register MCP server', fn: registerMcp, skip: options.skipMcp },
     { name: 'Setup PATH for CLI', fn: setupPath, skip: options.skipPath },
-    { name: 'Setup CLAUDE.md template', fn: setupClaudeMd, skip: options.skipClaudeMd },
   ];
+
+  // Claude Code steps
+  const claudeSteps: Array<{ name: string; fn: () => Promise<boolean> | boolean; skip?: boolean }> = [
+    { name: 'Register MCP server (Claude Code)', fn: registerMcpClaude, skip: options.skipMcp },
+    { name: 'Setup CLAUDE.md template', fn: setupClaudeMd, skip: options.skipRules },
+  ];
+
+  // Cursor steps
+  const cursorSteps: Array<{ name: string; fn: () => Promise<boolean> | boolean; skip?: boolean }> = [
+    { name: 'Configure Cursor MCP', fn: registerMcpCursor, skip: options.skipMcp },
+    { name: 'Setup .cursorrules', fn: setupCursorRules, skip: options.skipRules },
+  ];
+
+  // Build steps based on editor choice
+  let editorSteps: Array<{ name: string; fn: () => Promise<boolean> | boolean; skip?: boolean }>;
+  if (editor === 'claude') {
+    editorSteps = claudeSteps;
+  } else if (editor === 'cursor') {
+    editorSteps = cursorSteps;
+  } else {
+    editorSteps = [...claudeSteps, ...cursorSteps];
+  }
+
+  const steps = [...commonSteps, ...editorSteps];
 
   let failed = false;
 
@@ -262,9 +423,21 @@ export async function init(args: string[]): Promise<void> {
   }
 
   console.log(bold('Next steps:'));
-  console.log(`  ${cyan('1.')} Restart Claude Code (or open a new terminal)`);
-  console.log(`  ${cyan('2.')} Ask Claude to solve a complex problem`);
-  console.log(`  ${cyan('3.')} Watch Matrix learn from your solutions`);
+  if (editor === 'claude') {
+    console.log(`  ${cyan('1.')} Restart Claude Code (or open a new terminal)`);
+    console.log(`  ${cyan('2.')} Ask Claude to solve a complex problem`);
+    console.log(`  ${cyan('3.')} Watch Matrix learn from your solutions`);
+  } else if (editor === 'cursor') {
+    console.log(`  ${cyan('1.')} Restart Cursor to load MCP configuration`);
+    console.log(`  ${cyan('2.')} Enable MCP in Cursor settings if not already enabled`);
+    console.log(`  ${cyan('3.')} Use Cursor Agent to solve complex problems`);
+    console.log(`  ${cyan('4.')} Matrix will learn from your solutions`);
+  } else {
+    console.log(`  ${cyan('1.')} Restart Claude Code and/or Cursor`);
+    console.log(`  ${cyan('2.')} For Cursor: Enable MCP in settings if not already enabled`);
+    console.log(`  ${cyan('3.')} Solve complex problems in either editor`);
+    console.log(`  ${cyan('4.')} Matrix shares memory across both editors`);
+  }
 
   console.log(`\n${bold('Quick test:')}`);
   console.log(dim('  matrix stats'));

@@ -55,6 +55,13 @@ async function promptEditor(): Promise<EditorChoice> {
   return new Promise((resolve) => {
     const askQuestion = () => {
       rl.question(`${bold('Enter choice')} ${dim('[1/2/3]')}: `, (answer) => {
+        // Handle EOF (null answer when user presses CTRL+D)
+        if (answer === null) {
+          console.log('\nAborted.');
+          rl.close();
+          process.exit(0);
+        }
+        
         const choice = answer.trim().toLowerCase();
         if (choice === '1' || choice === 'claude') {
           rl.close();
@@ -70,9 +77,6 @@ async function promptEditor(): Promise<EditorChoice> {
           askQuestion();
         }
       });
-    };
-    askQuestion();
-  });
 }
 
 async function checkBun(): Promise<boolean> {

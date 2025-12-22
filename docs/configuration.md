@@ -45,7 +45,7 @@ Add to `~/.claude/CLAUDE.md` for automatic Matrix integration:
 ### Minimal Configuration
 
 ```markdown
-## Matrix Memory System
+## Claude Matrix - Tooling System
 
 Before implementing complexity 5+ tasks, call:
 - `matrix_recall("problem description")`
@@ -59,7 +59,7 @@ After solving, call:
 ### Full Configuration (Recommended)
 
 ```markdown
-## Matrix Memory System - MANDATORY WORKFLOW
+## Claude Matrix - Tooling System - MANDATORY WORKFLOW
 
 ### STEP 1: Rate complexity (BEFORE any action)
 ```

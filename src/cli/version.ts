@@ -13,6 +13,6 @@ async function getVersion(): Promise<string> {
 
 export async function version(): Promise<void> {
   const v = await getVersion();
-  console.log(`${bold('Matrix Memory System')} ${dim(`v${v}`)}`);
-  console.log(dim('Persistent memory for Claude Code'));
+  console.log(`${bold('Claude Matrix - Tooling System')} ${dim(`v${v}`)}`);
+  console.log(dim('Persistent memory for AI coding assistants'));
 }

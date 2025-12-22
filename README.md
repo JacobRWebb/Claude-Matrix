@@ -4,10 +4,10 @@
 
 **Persistent memory for Claude Code** - Learn from past solutions, avoid repeated mistakes.
 
+Supports **Claude Code** and **Cursor**.
 
 
 https://github.com/user-attachments/assets/0e43c647-071d-4a7d-9de4-633fee5c5e34
-
 
 
 
@@ -20,8 +20,6 @@ matrix follow the white rabbit
 Interactive Matrix-themed onboarding that teaches you all the features. Navigate through portals, learn the tools, follow the rabbit.
 
 ## Why Matrix?
-
-Claude Code is stateless - every session starts fresh. Matrix fixes this:
 
 - **Recall solutions** - Search past implementations semantically
 - **Learn from failures** - Record errors to prevent repeating them
@@ -45,24 +43,17 @@ brew install matrix
 matrix init
 ```
 
+The `init` command will prompt you to choose your editor:
+- **Claude Code** - Registers MCP server and configures `~/.claude/CLAUDE.md`
+- **Cursor** - Configures `~/.cursor/mcp.json` and `~/.cursorrules`
+- **Both** - Configures both editors (shared memory)
+
 ### Manual
 
 ```bash
 git clone https://github.com/ojowwalker77/Claude-Matrix.git ~/.claude/matrix
 cd ~/.claude/matrix && bun install
-claude mcp add matrix -s user -- bun run ~/.claude/matrix/src/index.ts
-```
-
-Then add to `~/.claude/CLAUDE.md`:
-
-```markdown
-## Matrix Memory System
-
-Before implementing complex tasks (5+ difficulty):
-1. Call matrix_recall first
-2. After solving, use matrix_store to save
-3. Use matrix_reward if you used a recalled solution
-4. Use matrix_failure if you fixed an error
+matrix init
 ```
 
 ## Tools

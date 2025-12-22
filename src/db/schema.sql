@@ -1,4 +1,4 @@
--- Matrix Memory System Schema
+-- Claude Matrix - Tooling System Schema
 
 -- Repositórios conhecidos
 CREATE TABLE IF NOT EXISTS repos (

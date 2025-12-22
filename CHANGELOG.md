@@ -2,6 +2,14 @@
 
 All notable changes to Claude Matrix are documented here.
 
+## [0.4.2] - 2025-12-22
+
+### Added
+- **Cursor Support** - `matrix init` now supports Cursor IDE
+  - Interactive prompt to choose: Claude Code, Cursor, or Both
+  - Cursor: Configures `~/.cursor/mcp.json` and `~/.cursorrules`
+  - Both editors share the same Matrix database
+
 ## [0.4.1] - 2025-12-21
 
 ### Added

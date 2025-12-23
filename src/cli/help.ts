@@ -12,6 +12,7 @@ ${bold('COMMANDS')}
   ${cyan('init')}                    Initialize Matrix (auto-setup)
   ${cyan('search')} ${muted('<query>')}         Search past solutions semantically
   ${cyan('list')} ${muted('[type]')}            List solutions, failures, or repos
+  ${cyan('edit')} ${muted('<id>')}              Edit a solution or failure
   ${cyan('merge')}                   Find and merge duplicate solutions
   ${cyan('config')}                  View and edit configuration
   ${cyan('stats')}                   Show memory statistics
@@ -23,6 +24,11 @@ ${bold('SEARCH OPTIONS')}
   ${muted('--limit=N')}              Max results (default: 5)
   ${muted('--min-score=N')}          Min similarity 0-1 (default: 0.3)
   ${muted('--scope=SCOPE')}          Filter: all, repo, stack, global
+
+${bold('EDIT OPTIONS')}
+  ${muted('--type=TYPE')}            solution or failure (auto-detected)
+  ${muted('--field=FIELD')}          Field to edit (inline mode)
+  ${muted('--value=VALUE')}          New value (inline mode)
 
 ${bold('MERGE OPTIONS')}
   ${muted('--threshold=N')}          Similarity threshold (default: 0.8)
@@ -52,6 +58,12 @@ ${bold('EXAMPLES')}
 
   ${muted('# Find duplicate solutions')}
   matrix merge --dry-run
+
+  ${muted('# Edit a solution interactively')}
+  matrix edit abc123
+
+  ${muted('# Edit a specific field inline')}
+  matrix edit abc123 --field=problem --value="Updated problem"
 
   ${muted('# View/edit configuration')}
   matrix config

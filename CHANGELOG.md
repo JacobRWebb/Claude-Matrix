@@ -2,6 +2,14 @@
 
 All notable changes to Claude Matrix are documented here.
 
+## [0.4.4] - 2025-12-22
+
+### Added
+- **Edit Command** - `matrix edit <id>` to edit solutions and failures
+  - Interactive mode: select fields to edit with numbered menu
+  - Inline mode: `--field=problem --value="New value"`
+  - Auto-detects solution vs failure, or use `--type=failure`
+
 ## [0.4.3] - 2025-12-22
 
 ### Fixed

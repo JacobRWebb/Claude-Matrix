@@ -113,8 +113,30 @@ install_homebrew() {
     fi
 
     info "Installing Matrix via Homebrew..."
-    brew tap ojowwalker77/matrix
-    brew install matrix
+    if ! brew tap ojowwalker77/matrix; then
+        warn "Failed to tap Homebrew repository"
+        return 1
+    fi
+
+    if ! brew install matrix; then
+        warn "Failed to install Matrix via Homebrew"
+        return 1
+    fi
+
+    # Install dependencies (Homebrew formula doesn't bundle node_modules)
+    local libexec_dir="$(brew --prefix matrix)/libexec"
+    if [ -d "$libexec_dir" ] && [ -f "$libexec_dir/package.json" ]; then
+        info "Installing dependencies..."
+        if ! (cd "$libexec_dir" && bun install --production); then
+            warn "Failed to install dependencies via Homebrew"
+            return 1
+        fi
+        success "Dependencies installed"
+    else
+        warn "Could not find libexec directory"
+        return 1
+    fi
+
     return 0
 }
 

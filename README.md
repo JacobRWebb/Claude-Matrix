@@ -24,6 +24,8 @@ Interactive Matrix-themed onboarding that teaches you all the features. Navigate
 - **Recall solutions** - Search past implementations semantically
 - **Learn from failures** - Record errors to prevent repeating them
 - **Context aware** - Solutions boosted by repo/stack similarity
+- **Automatic context injection** - Hooks inject relevant memories into prompts
+- **Package auditing** - CVE and deprecation warnings before installing
 
 ## Screenshots
 
@@ -66,7 +68,7 @@ matrix init
 ```
 
 The `init` command will prompt you to choose your editor:
-- **Claude Code** - Registers MCP server and configures `~/.claude/CLAUDE.md`
+- **Claude Code** - Registers MCP server, hooks, and configures `~/.claude/CLAUDE.md`
 - **Cursor** - Configures `~/.cursor/mcp.json` and `~/.cursorrules`
 - **Both** - Configures both editors (shared memory)
 
@@ -76,13 +78,13 @@ The `init` command will prompt you to choose your editor:
 # Check for updates
 matrix upgrade --check
 
-# Install updates
+# Install updates (includes database migrations)
 matrix upgrade
 ```
 
 Matrix automatically checks for updates and notifies you when a new version is available.
 
-## Tools
+## MCP Tools
 
 | Tool | Purpose |
 |------|---------|
@@ -91,24 +93,98 @@ Matrix automatically checks for updates and notifies you when a new version is a
 | `matrix_reward(solutionId, outcome)` | Give feedback (success/partial/failure) |
 | `matrix_failure(errorType, message, fix)` | Record an error pattern |
 | `matrix_status()` | Check memory stats |
+| `matrix_warn_check(type, target)` | Check if file/package has warnings |
+| `matrix_warn_add(type, target, reason)` | Add a warning |
+| `matrix_warn_list()` | List all warnings |
+| `matrix_warn_remove(id)` | Remove a warning |
 
-→ [Full tool reference](docs/tools.md)
+## Hooks Integration
 
-## CLI
+Matrix integrates with Claude Code hooks for automatic context injection and protection:
+
+| Hook | Trigger | Action |
+|------|---------|--------|
+| **UserPromptSubmit** | User sends prompt | Estimates complexity, injects relevant memories if >= 5 |
+| **PreToolUse:Bash** | Before package install | Audits for CVEs, deprecation, size warnings |
+| **PreToolUse:Edit** | Before file edit | Checks for file warnings |
+| **PostToolUse:Bash** | After package install | Logs installation for audit trail |
+| **Stop** | Session ends | Prompts to store significant sessions |
+
+### Package Auditor
+
+When you install packages, Matrix automatically checks:
+- **CVEs** via [OSV.dev](https://osv.dev)
+- **Deprecation** status from npm registry
+- **Bundle size** via Bundlephobia (npm)
+- **Local warnings** from your Matrix database
+
+### Warning System
+
+Mark problematic files or packages:
 
 ```bash
-matrix search "OAuth implementation"
-matrix list solutions
-matrix stats
-matrix export --format=json
+# Add file warning (supports glob patterns)
+matrix warn add file "src/legacy/*" --reason "Deprecated, do not modify"
+
+# Add package warning
+matrix warn add package lodash --ecosystem npm --reason "Use native methods instead"
+
+# Block severity (stops Claude from proceeding)
+matrix warn add file "config/secrets.ts" --reason "Contains credentials" --severity block
+
+# List all warnings
+matrix warn list
 ```
 
-→ [CLI reference](docs/cli.md) · [Shell completions](docs/shell-completions.md)
+## CLI Commands
+
+```bash
+# Memory
+matrix search "OAuth implementation"   # Search solutions
+matrix list solutions                  # List all solutions
+matrix list failures                   # List all failures
+matrix edit <id>                       # Edit a solution/failure
+
+# Warnings
+matrix warn list                       # List warnings
+matrix warn add <type> <target>        # Add warning
+matrix warn remove <id>                # Remove warning
+
+# Hooks
+matrix hooks status                    # Check hook installation
+matrix hooks install                   # Install/reinstall hooks
+matrix hooks uninstall                 # Remove hooks
+
+# Maintenance
+matrix stats                           # Memory statistics
+matrix export --format=json            # Export database
+matrix merge                           # Dedupe similar solutions
+matrix config                          # View/edit configuration
+matrix upgrade                         # Check and install updates
+matrix migrate                         # Run database migrations
+```
+
+## Configuration
+
+```bash
+# View all settings
+matrix config list
+
+# Change complexity threshold for memory injection
+matrix config set hooks.complexityThreshold 7
+
+# Disable deprecation warnings
+matrix config set hooks.skipDeprecationWarnings true
+
+# Set package size warning threshold (bytes)
+matrix config set hooks.sizeWarningThreshold 1000000
+```
 
 ## Privacy
 
 - 100% local - no data leaves your machine
-- No API calls - embeddings computed locally
+- No API calls for memory - embeddings computed locally
+- Package auditing uses public APIs (OSV.dev, npm, Bundlephobia)
 - Single SQLite file - easy to backup or delete
 
 ## Links
@@ -116,6 +192,8 @@ matrix export --format=json
 - [Changelog](CHANGELOG.md)
 - [Roadmap](ROADMAP.md)
 - [Architecture](docs/architecture.md)
+- [CLI Reference](docs/cli.md)
+- [Shell Completions](docs/shell-completions.md)
 
 ## Contributors
 

@@ -2,6 +2,21 @@
 
 All notable changes to Claude Matrix are documented here.
 
+## [0.4.4] - 2025-12-22
+
+### Added
+- **Edit Command** - `matrix edit <id>` to edit solutions and failures
+  - Interactive mode: select fields to edit with numbered menu
+  - Inline mode: `--field=problem --value="New value"`
+  - Auto-detects solution vs failure, or use `--type=failure`
+
+## [0.4.3] - 2025-12-22
+
+### Fixed
+- **Export saves to file** - `matrix export` now saves to Downloads folder by default
+  - Configurable via `matrix config set export.defaultDirectory /path`
+  - Generates timestamped filenames: `matrix-export-{type}-{timestamp}.json`
+
 ## [0.4.2] - 2025-12-22
 
 ### Added

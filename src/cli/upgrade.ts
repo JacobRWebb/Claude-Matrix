@@ -109,14 +109,14 @@ export async function upgrade(args: string[]): Promise<void> {
     if (!pullResult.success) {
       error('Failed to pull latest changes');
       console.log(dim(pullResult.output));
-      return;
+      process.exit(1);
     }
 
     const installResult = await runCommand(['bun', 'install'], matrixDir);
     if (!installResult.success) {
       error('Failed to install dependencies');
       console.log(dim(installResult.output));
-      return;
+      process.exit(1);
     }
 
     success(`Upgraded to v${updateInfo.latestVersion}`);

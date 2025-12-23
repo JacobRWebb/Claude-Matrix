@@ -93,12 +93,14 @@ function getCurrentVersion(db: Database): number {
       `).get();
 
       if (hasSolutions) {
-        // Existing DB, check if it has v2 tables
-        const hasWarnings = db.query(`
-          SELECT name FROM sqlite_master WHERE type='table' AND name='warnings'
-        `).get();
+        // Existing DB, check if it has ALL v2 tables
+        const v2Tables = ['warnings', 'dependency_installs', 'session_summaries', 'api_cache'];
+        const existingTables = db.query(`
+          SELECT name FROM sqlite_master WHERE type='table' AND name IN ('warnings', 'dependency_installs', 'session_summaries', 'api_cache')
+        `).all() as { name: string }[];
 
-        const initialVersion = hasWarnings ? 2 : 1;
+        const hasAllV2Tables = v2Tables.every(t => existingTables.some(e => e.name === t));
+        const initialVersion = hasAllV2Tables ? 2 : 1;
         db.exec(`INSERT INTO schema_version (version) VALUES (${initialVersion})`);
         return initialVersion;
       } else {

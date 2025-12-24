@@ -1,26 +1,37 @@
-import { pipeline } from '@xenova/transformers';
+// Lazy import - don't load @xenova/transformers until actually needed
+// This allows Matrix CLI to work even if sharp native binary failed to install
+
+// Re-export pure utilities (no transformers dependency)
+export { cosineSimilarity, EMBEDDING_DIM } from './utils.js';
 
 const MODEL_NAME = 'Xenova/all-MiniLM-L6-v2';
-const EMBEDDING_DIM = 384;
 
-type Embedder = Awaited<ReturnType<typeof pipeline>>;
+let embedder: unknown = null;
+let loadingPromise: Promise<unknown> | null = null;
+let transformersError: string | null = null;
 
-let embedder: Embedder | null = null;
-let loadingPromise: Promise<Embedder> | null = null;
-
-async function loadEmbedder(): Promise<Embedder> {
+async function loadEmbedder(): Promise<unknown> {
   if (embedder) return embedder;
-
+  if (transformersError) throw new Error(transformersError);
   if (loadingPromise) return loadingPromise;
 
-  loadingPromise = pipeline('feature-extraction', MODEL_NAME, {
-    quantized: true, // Use quantized model for faster loading
-  });
+  try {
+    // Dynamic import - only loads when needed
+    const { pipeline } = await import('@xenova/transformers');
 
-  embedder = await loadingPromise;
-  loadingPromise = null;
+    loadingPromise = pipeline('feature-extraction', MODEL_NAME, {
+      quantized: true,
+    });
 
-  return embedder;
+    embedder = await loadingPromise;
+    loadingPromise = null;
+
+    return embedder;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    transformersError = `Embeddings unavailable: ${msg}. Run 'bun install' with network access to fix.`;
+    throw new Error(transformersError);
+  }
 }
 
 export async function getEmbedding(text: string): Promise<Float32Array> {
@@ -57,31 +68,10 @@ export async function getEmbeddings(texts: string[]): Promise<Float32Array[]> {
   return results;
 }
 
-export function cosineSimilarity(a: Float32Array, b: Float32Array): number {
-  if (a.length !== b.length) {
-    throw new Error(`Dimension mismatch: ${a.length} vs ${b.length}`);
-  }
-
-  let dot = 0;
-  let normA = 0;
-  let normB = 0;
-
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i]! * b[i]!;
-    normA += a[i]! * a[i]!;
-    normB += b[i]! * b[i]!;
-  }
-
-  // Since we normalize, this should be close to dot product
-  // But compute properly for safety
-  const denom = Math.sqrt(normA) * Math.sqrt(normB);
-  return denom === 0 ? 0 : dot / denom;
-}
-
-export { EMBEDDING_DIM };
-
 // Test if run directly
 if (import.meta.main) {
+  const { cosineSimilarity } = await import('./utils.js');
+
   console.log('Testing embeddings...');
   const start = Date.now();
 

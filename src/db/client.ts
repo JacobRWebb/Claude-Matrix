@@ -1,17 +1,27 @@
 import { Database } from 'bun:sqlite';
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { homedir } from 'os';
 import { cosineSimilarity, EMBEDDING_DIM } from '../embeddings/utils.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 let db: Database | null = null;
 
+// Default to ~/.claude/matrix/matrix.db (plugin standard location)
+function getDefaultDbPath(): string {
+  const matrixDir = join(homedir(), '.claude', 'matrix');
+  if (!existsSync(matrixDir)) {
+    mkdirSync(matrixDir, { recursive: true });
+  }
+  return join(matrixDir, 'matrix.db');
+}
+
 export function getDb(): Database {
   if (db) return db;
 
-  const dbPath = process.env['MATRIX_DB'] || join(__dirname, '../../matrix.db');
+  const dbPath = process.env['MATRIX_DB'] || getDefaultDbPath();
 
   db = new Database(dbPath, { create: true });
   db.exec('PRAGMA journal_mode = WAL');

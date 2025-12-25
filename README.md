@@ -104,23 +104,32 @@ Matrix hooks run automatically:
 
 ## Development
 
+### Prerequisites
+
+- [Bun](https://bun.sh) v1.0+
+- [Claude Code](https://claude.ai/code) v2.0+
+
+### Setup
+
 ```bash
-# Clone
 git clone https://github.com/ojowwalker77/Claude-Matrix
 cd Claude-Matrix
-
-# Install dependencies
 bun install
-
-# Build for current platform
 bun run build
-
-# Build for all platforms
-bun run build:all
-
-# Run MCP server directly (dev)
-bun run start
 ```
+
+### Test Locally
+
+```bash
+claude --plugin-dir /path/to/Claude-Matrix
+```
+
+### Contributing
+
+1. Fork and branch from `dev`
+2. Make changes and run `bun test`
+3. Build with `bun run build`
+4. Open PR targeting `dev` branch
 
 ## Upgrading
 

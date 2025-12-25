@@ -1,50 +1,29 @@
 #!/usr/bin/env bun
-/**
- * Unified Hooks Entry Point
- *
- * Single binary that handles all hook events based on CLI argument.
- * Compiled with: bun build --compile src/hooks/unified-entry.ts
- *
- * Usage: matrix-hooks <hook-type>
- * Hook types: session-start, user-prompt-submit, pre-tool-bash, post-tool-bash, pre-tool-edit, stop-session
- */
+import { run as sessionStart } from './session-start.js';
+import { run as userPromptSubmit } from './user-prompt-submit.js';
+import { run as preToolBash } from './pre-tool-bash.js';
+import { run as postToolBash } from './post-tool-bash.js';
+import { run as preToolEdit } from './pre-tool-edit.js';
+import { run as stopSession } from './stop-session.js';
+
+const hooks: Record<string, () => Promise<void>> = {
+  'session-start': sessionStart,
+  'user-prompt-submit': userPromptSubmit,
+  'pre-tool-bash': preToolBash,
+  'post-tool-bash': postToolBash,
+  'pre-tool-edit': preToolEdit,
+  'stop-session': stopSession,
+};
 
 const hookType = process.argv[2];
 
-if (!hookType) {
+if (!hookType || !hooks[hookType]) {
   console.error('Usage: matrix-hooks <hook-type>');
-  console.error('Hook types: session-start, user-prompt-submit, pre-tool-bash, post-tool-bash, pre-tool-edit, stop-session');
+  console.error('Hook types: ' + Object.keys(hooks).join(', '));
   process.exit(1);
 }
 
-async function main() {
-  switch (hookType) {
-    case 'session-start':
-      await import('./session-start.js');
-      break;
-    case 'user-prompt-submit':
-      await import('./user-prompt-submit.js');
-      break;
-    case 'pre-tool-bash':
-      await import('./pre-tool-bash.js');
-      break;
-    case 'post-tool-bash':
-      await import('./post-tool-bash.js');
-      break;
-    case 'pre-tool-edit':
-      await import('./pre-tool-edit.js');
-      break;
-    case 'stop-session':
-      await import('./stop-session.js');
-      break;
-    default:
-      console.error(`Unknown hook type: ${hookType}`);
-      console.error('Valid types: session-start, user-prompt-submit, pre-tool-bash, post-tool-bash, pre-tool-edit, stop-session');
-      process.exit(1);
-  }
-}
-
-main().catch((err) => {
+hooks[hookType]().catch((err) => {
   console.error(`Hook ${hookType} failed:`, err);
   process.exit(1);
 });

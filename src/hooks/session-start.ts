@@ -234,7 +234,7 @@ function printToUser(message: string): void {
   }
 }
 
-async function main() {
+export async function run() {
   try {
     // Create directory if it doesn't exist
     if (!existsSync(MATRIX_DIR)) {
@@ -300,4 +300,4 @@ async function main() {
   }
 }
 
-main();
+if (import.meta.main) run();

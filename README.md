@@ -21,6 +21,7 @@ Interactive Matrix-themed onboarding that teaches you all the features. Navigate
 
 ## Why Matrix?
 
+- **Context7 by default** - WebFetch/WebSearch intercepted via hooks, routes to Context7 for accurate library docs
 - **Recall solutions** - Search past implementations semantically
 - **Learn from failures** - Record errors to prevent repeating them
 - **Context aware** - Solutions boosted by repo/stack similarity

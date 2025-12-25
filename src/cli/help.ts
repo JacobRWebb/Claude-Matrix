@@ -16,6 +16,7 @@ ${bold('COMMANDS')}
   ${cyan('merge')}                   Find and merge duplicate solutions
   ${cyan('warn')} ${muted('<action>')}          Manage warnings for files/packages
   ${cyan('hooks')}                   Manage Claude Code hooks
+  ${cyan('context7')}                Manage Context7 docs server
   ${cyan('config')}                  View and edit configuration
   ${cyan('stats')}                   Show memory statistics
   ${cyan('export')}                  Export database (JSON/CSV)
@@ -50,6 +51,12 @@ ${bold('CONFIG SUBCOMMANDS')}
   ${muted('get <key>')}              Get a specific value
   ${muted('set <key> <val>')}        Set a specific value
   ${muted('reset')}                  Reset to defaults
+
+${bold('CONTEXT7 SUBCOMMANDS')}
+  ${muted('status')}                 Show installation status
+  ${muted('install')}                Install Context7 MCP server
+  ${muted('uninstall')}              Remove Context7
+  ${muted('test')}                   Test Context7 connection
 
 ${bold('UPGRADE OPTIONS')}
   ${muted('--check, -c')}            Check only, don't install

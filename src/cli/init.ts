@@ -37,6 +37,7 @@ interface InitOptions {
   skipPath: boolean;
   skipRules: boolean;
   skipHooks: boolean;
+  skipContext7: boolean;
   editor?: EditorChoice;
 }
 
@@ -67,6 +68,7 @@ function parseArgs(args: string[]): InitOptions {
     skipPath: args.includes('--skip-path'),
     skipRules: args.includes('--skip-rules') || args.includes('--skip-claude-md'),
     skipHooks: args.includes('--skip-hooks'),
+    skipContext7: args.includes('--skip-context7'),
     editor: undefined,
   };
 }
@@ -469,6 +471,96 @@ async function setupPath(): Promise<boolean> {
   return true;
 }
 
+// Context7 setup functions
+async function promptContext7Setup(): Promise<boolean> {
+  const rl = createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  console.log(`\n${bold('Context7 Documentation Server')}\n`);
+  console.log(dim('  Context7 provides up-to-date library documentation directly'));
+  console.log(dim('  to Claude, replacing outdated training data with current docs.'));
+  console.log(dim('  Use "use context7" in prompts to fetch accurate docs.\n'));
+
+  return new Promise((resolve) => {
+    rl.question(`${bold('Install Context7?')} ${dim('[Y/n]')}: `, (answer) => {
+      rl.close();
+      if (answer === null) {
+        console.log('\nAborted.');
+        process.exit(0);
+      }
+      const choice = answer.toLowerCase().trim();
+      // Default to yes (empty or 'y' or 'yes')
+      resolve(choice === '' || choice === 'y' || choice === 'yes');
+    });
+  });
+}
+
+async function registerContext7Claude(): Promise<boolean> {
+  info('Installing Context7 MCP server...');
+
+  const hasClaudeCli = await checkClaudeCli();
+  if (!hasClaudeCli) {
+    warn('Claude CLI not found - skipping Context7');
+    console.log(dim('Install manually: claude mcp add context7 -- npx -y @upstash/context7-mcp'));
+    return true;
+  }
+
+  try {
+    // Check if already registered
+    const listResult = await $`claude mcp list`.quiet();
+    if (listResult.text().includes('context7')) {
+      success('Context7 already registered');
+      return true;
+    }
+
+    // Register Context7
+    await $`claude mcp add context7 -- npx -y @upstash/context7-mcp`.quiet();
+    success('Context7 MCP server installed');
+    console.log(dim('  Usage: Include "use context7" in prompts for library docs'));
+    return true;
+  } catch (err) {
+    warn(`Context7 installation had issues: ${err}`);
+    console.log(dim('Install manually: claude mcp add context7 -- npx -y @upstash/context7-mcp'));
+    return true;
+  }
+}
+
+async function registerContext7Cursor(): Promise<boolean> {
+  const { CURSOR_MCP_PATH } = getPaths();
+
+  info('Adding Context7 to Cursor MCP config...');
+
+  try {
+    if (!existsSync(CURSOR_MCP_PATH)) {
+      warn('Cursor MCP config not found - skipping Context7 for Cursor');
+      return true;
+    }
+
+    const content = await Bun.file(CURSOR_MCP_PATH).text();
+    const config = JSON.parse(content);
+
+    if (config.mcpServers?.context7) {
+      success('Context7 already configured in Cursor');
+      return true;
+    }
+
+    config.mcpServers = config.mcpServers || {};
+    config.mcpServers.context7 = {
+      command: 'npx',
+      args: ['-y', '@upstash/context7-mcp'],
+    };
+
+    await Bun.write(CURSOR_MCP_PATH, JSON.stringify(config, null, 2) + '\n');
+    success('Context7 added to Cursor MCP config');
+    return true;
+  } catch (err) {
+    warn(`Failed to add Context7 to Cursor: ${err}`);
+    return true;
+  }
+}
+
 // Hooks setup functions
 async function promptHooksSetup(): Promise<{ enableHooks: boolean; enableCache: boolean }> {
   const rl = createInterface({
@@ -700,6 +792,25 @@ export async function init(args: string[]): Promise<void> {
     }
   }
 
+  // Context7 setup
+  let context7Installed = false;
+  if (!options.skipContext7) {
+    const installContext7 = await promptContext7Setup();
+
+    if (installContext7) {
+      if (editor === 'claude' || editor === 'both') {
+        const claudeResult = await registerContext7Claude();
+        if (claudeResult) context7Installed = true;
+      }
+      if (editor === 'cursor' || editor === 'both') {
+        const cursorResult = await registerContext7Cursor();
+        if (cursorResult) context7Installed = true;
+      }
+    } else {
+      console.log(dim('\n  Context7 skipped. Install later with: claude mcp add context7 -- npx -y @upstash/context7-mcp'));
+    }
+  }
+
   if (failed) {
     console.log(yellow('\nSetup completed with warnings.'));
   } else {
@@ -739,6 +850,9 @@ export async function init(args: string[]): Promise<void> {
   console.log(dim('  matrix search "authentication"'));
   if (hooksInstalled) {
     console.log(dim('  matrix hooks status'));
+  }
+  if (context7Installed) {
+    console.log(dim('  Try: "use context7 to explain Bun.serve()"'));
   }
   console.log();
 }

@@ -2,6 +2,13 @@
 
 All notable changes to Claude Matrix are documented here.
 
+## [0.5.3] - 2025-12-25
+
+### Added
+- **Context7** - WebFetch/WebSearch intercepted via hooks, defaults to Context7 for library docs
+  - `matrix context7` commands: install, status, uninstall, test
+  - `matrix init` auto-installs Context7 MCP
+
 ## [0.5.2] - 2025-12-24
 
 ### Improved

@@ -15,9 +15,12 @@
  */
 
 import { existsSync, mkdirSync, writeFileSync, readFileSync, copyFileSync } from 'fs';
-import { join } from 'path';
+import { join, basename } from 'path';
 import { homedir } from 'os';
 import { Database } from 'bun:sqlite';
+import { createHash } from 'crypto';
+import { spawnSync } from 'child_process';
+import { getConfig } from '../config/index.js';
 
 const CURRENT_VERSION = '0.5.4';
 const MATRIX_DIR = join(homedir(), '.claude', 'matrix');
@@ -172,6 +175,77 @@ CREATE INDEX IF NOT EXISTS idx_dep_installs_session ON dependency_installs(sessi
 CREATE INDEX IF NOT EXISTS idx_dep_installs_repo ON dependency_installs(repo_id);
 CREATE INDEX IF NOT EXISTS idx_session_summaries_session ON session_summaries(session_id);
 CREATE INDEX IF NOT EXISTS idx_api_cache_created ON api_cache(created_at);
+
+-- ============================================================================
+-- Code Indexer Tables (Repository Symbol Index)
+-- ============================================================================
+
+-- Track indexed files and their state
+CREATE TABLE IF NOT EXISTS repo_files (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    repo_id TEXT NOT NULL,
+    file_path TEXT NOT NULL,
+    mtime INTEGER NOT NULL,
+    hash TEXT,
+    indexed_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(repo_id, file_path)
+);
+
+-- Symbol index (functions, classes, variables, types)
+CREATE TABLE IF NOT EXISTS symbols (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    repo_id TEXT NOT NULL,
+    file_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    line INTEGER NOT NULL,
+    column INTEGER NOT NULL,
+    end_line INTEGER,
+    exported INTEGER DEFAULT 0,
+    is_default INTEGER DEFAULT 0,
+    scope TEXT,
+    signature TEXT,
+    FOREIGN KEY (file_id) REFERENCES repo_files(id) ON DELETE CASCADE
+);
+
+-- Import statements in files
+CREATE TABLE IF NOT EXISTS imports (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    file_id INTEGER NOT NULL,
+    imported_name TEXT NOT NULL,
+    local_name TEXT,
+    source_path TEXT NOT NULL,
+    is_default INTEGER DEFAULT 0,
+    is_namespace INTEGER DEFAULT 0,
+    is_type INTEGER DEFAULT 0,
+    line INTEGER NOT NULL,
+    FOREIGN KEY (file_id) REFERENCES repo_files(id) ON DELETE CASCADE
+);
+
+-- References (where symbols are used)
+CREATE TABLE IF NOT EXISTS symbol_refs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    symbol_id INTEGER NOT NULL,
+    file_id INTEGER NOT NULL,
+    line INTEGER NOT NULL,
+    column INTEGER NOT NULL,
+    FOREIGN KEY (symbol_id) REFERENCES symbols(id) ON DELETE CASCADE,
+    FOREIGN KEY (file_id) REFERENCES repo_files(id) ON DELETE CASCADE
+);
+
+-- Indexes for fast queries
+CREATE INDEX IF NOT EXISTS idx_repo_files_repo ON repo_files(repo_id);
+CREATE INDEX IF NOT EXISTS idx_repo_files_path ON repo_files(repo_id, file_path);
+CREATE INDEX IF NOT EXISTS idx_symbols_name ON symbols(name);
+CREATE INDEX IF NOT EXISTS idx_symbols_repo ON symbols(repo_id);
+CREATE INDEX IF NOT EXISTS idx_symbols_file ON symbols(file_id);
+CREATE INDEX IF NOT EXISTS idx_symbols_kind ON symbols(kind);
+CREATE INDEX IF NOT EXISTS idx_symbols_exported ON symbols(exported);
+CREATE INDEX IF NOT EXISTS idx_imports_file ON imports(file_id);
+CREATE INDEX IF NOT EXISTS idx_imports_source ON imports(source_path);
+CREATE INDEX IF NOT EXISTS idx_imports_name ON imports(imported_name);
+CREATE INDEX IF NOT EXISTS idx_symbol_refs_symbol ON symbol_refs(symbol_id);
+CREATE INDEX IF NOT EXISTS idx_symbol_refs_file ON symbol_refs(file_id);
 `;
 
 /**
@@ -234,6 +308,83 @@ function printToUser(message: string): void {
   }
 }
 
+/**
+ * Find git repository root
+ */
+function findGitRoot(startPath: string): string | null {
+  const result = spawnSync('git', ['rev-parse', '--show-toplevel'], {
+    cwd: startPath,
+    encoding: 'utf-8',
+  });
+  if (result.status === 0 && result.stdout) {
+    return result.stdout.trim();
+  }
+  return null;
+}
+
+/**
+ * Check if directory is a TypeScript/JavaScript project
+ */
+function isTypeScriptProject(root: string): boolean {
+  return existsSync(join(root, 'package.json')) ||
+         existsSync(join(root, 'tsconfig.json')) ||
+         existsSync(join(root, 'jsconfig.json'));
+}
+
+/**
+ * Generate a stable repo ID from path
+ */
+function generateRepoId(root: string): string {
+  const hash = createHash('sha256').update(root).digest('hex').slice(0, 8);
+  return `repo_${hash}`;
+}
+
+interface IndexingConfig {
+  excludePatterns: string[];
+  maxFileSize: number;
+  timeout: number;
+  includeTests: boolean;
+}
+
+/**
+ * Run the repository indexer
+ */
+async function runIndexer(repoRoot: string, repoId: string, config: IndexingConfig): Promise<void> {
+  try {
+    // Dynamic import to avoid loading heavy modules if not needed
+    const { indexRepository } = await import('../indexer/index.js');
+
+    let lastProgress = '';
+    const result = await indexRepository({
+      repoRoot,
+      repoId,
+      incremental: true,
+      timeout: config.timeout,
+      excludePatterns: config.excludePatterns,
+      maxFileSize: config.maxFileSize,
+      includeTests: config.includeTests,
+      onProgress: (msg, pct) => {
+        // Update progress on same line
+        const progressLine = `\r\x1b[36m[Matrix]\x1b[0m ${msg} (${pct}%)`;
+        if (progressLine !== lastProgress) {
+          printToUser(progressLine);
+          lastProgress = progressLine;
+        }
+      },
+    });
+
+    // Clear progress line and show result
+    if (result.filesIndexed > 0) {
+      printToUser(`\r\x1b[32m[Matrix]\x1b[0m Indexed ${result.filesIndexed} files, ${result.symbolsFound} symbols (${result.duration}ms)`);
+    } else if (result.filesSkipped > 0) {
+      printToUser(`\r\x1b[32m[Matrix]\x1b[0m Index up to date (${result.filesSkipped} files)`);
+    }
+  } catch (err) {
+    // Silently fail - indexing is optional
+    console.error(`[Matrix] Indexer error: ${err}`);
+  }
+}
+
 export async function run() {
   try {
     // Create directory if it doesn't exist
@@ -291,6 +442,17 @@ export async function run() {
       // Update last session time
       state.lastSessionAt = new Date().toISOString();
       writeFileSync(MARKER_FILE, JSON.stringify(state, null, 2));
+    }
+
+    // Run indexer for TypeScript/JavaScript projects (if enabled)
+    const config = getConfig();
+    if (config.indexing.enabled) {
+      const cwd = process.cwd();
+      const repoRoot = findGitRoot(cwd) || cwd;
+      if (isTypeScriptProject(repoRoot)) {
+        const repoId = generateRepoId(repoRoot);
+        await runIndexer(repoRoot, repoId, config.indexing);
+      }
     }
 
     process.exit(0);

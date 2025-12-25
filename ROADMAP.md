@@ -1,35 +1,46 @@
-# Claude Matrix v1.0.0 Roadmap
+# Claude Matrix Roadmap
 
 > **Vision**: "Claude on Rails" — Zero-friction AI development with persistent memory, parallel agents, and intelligent prompting.
 
 ---
 
-## Context7 (v0.5.3 - Done)
+## v1.0.0 — RELEASED
 
-**Context7 is the default documentation source.** WebFetch/WebSearch hooks intercept doc lookups and route to Context7 for accurate, up-to-date library docs.
+The first stable release focuses on **Memory + Hooks + Context7**:
 
-- `matrix init` auto-installs Context7 MCP
-- `matrix context7` CLI for management
-- Works with Claude Code and Cursor
+- [x] Core MCP tools (recall, store, reward, failure, status)
+- [x] Local embeddings with transformers.js
+- [x] Repository fingerprinting
+- [x] Context-aware scoring
+- [x] Warning system (files/packages)
+- [x] Claude Code hooks (7 hooks total)
+- [x] Prompt Agent with hook integration
+- [x] Context7 WebFetch/WebSearch intercept
+- [x] Complexity estimation
+- [x] Package auditing (CVEs, deprecation)
 
 ---
 
-## The Four Pillars
+## v2.0.0 Roadmap
+
+The next major version focuses on **Worktrees & Agent Orchestration**.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    CLAUDE MATRIX v1.0.0                        │
+│                    CLAUDE MATRIX v2.0.0                         │
 ├────────────────┬────────────────┬────────────────┬─────────────┤
 │    MEMORY      │   WORKTREES    │    HOOKS       │   PROMPT    │
 │    SYSTEM      │   & AGENTS     │    SYSTEM      │   AGENT     │
 ├────────────────┼────────────────┼────────────────┼─────────────┤
-│ matrix_store   │ matrix spawn   │ UserPrompt     │ Intercept   │
-│ matrix_recall  │ matrix agents  │ PreToolUse     │ Analyze     │
-│ matrix_reward  │ matrix merge   │ PostToolUse    │ Clarify     │
-│ matrix_failure │ matrix kill    │ Stop           │ Optimize    │
-│ fingerprinting │ orchestration  │ + Context7     │ Delegate    │
+│ ✅ matrix_store│ matrix spawn   │ ✅ UserPrompt  │ ✅ Intercept│
+│ ✅ matrix_recall│ matrix agents │ ✅ PreToolUse  │ ✅ Analyze  │
+│ ✅ matrix_reward│ matrix merge  │ ✅ PostToolUse │ ✅ Clarify  │
+│ ✅ matrix_failure│ matrix kill  │ ✅ Stop        │ ✅ Optimize │
+│ ✅ fingerprinting│ orchestration│ ✅ Context7    │ Delegate    │
 └────────────────┴────────────────┴────────────────┴─────────────┘
 ```
+
+✅ = Completed in v1.0.0
 
 ---
 
@@ -577,35 +588,34 @@ matrix spawn feature/auth --prompt "fix the auth"
 
 ## Implementation Phases
 
-### Phase 1: Foundation (v0.6.0)
-- [ ] Enhanced `matrix_store()` with structured metadata
-- [ ] Repo indexing infrastructure
-- [ ] Context7 auto-install in `matrix init`
-- [ ] Basic worktree management (`matrix spawn`, `matrix kill`)
-
-### Phase 2: Core Features (v0.7.0)
+### v1.0.0 — RELEASED
+- [x] Core MCP tools (recall, store, reward, failure, status)
+- [x] Local embeddings with transformers.js
+- [x] Repository fingerprinting + context-aware scoring
+- [x] Warning system (files/packages)
+- [x] Claude Code hooks (7 total)
 - [x] Prompt Agent as MCP tool (`matrix_prompt`)
-- [ ] Context7 intercept hooks
+- [x] Prompt Agent hook integration (runs before complexity)
+- [x] Context7 intercept hooks (WebFetch/WebSearch)
+- [x] Complexity estimation + package auditing
+
+### v2.0.0 — Worktrees & Agents
+- [ ] Basic worktree management (`matrix spawn`, `matrix kill`)
 - [ ] Agent listing and status (`matrix agents`)
 - [ ] Memory modes (shared/isolated/readonly)
-
-### Phase 3: Orchestration (v0.8.0)
 - [ ] Agent attach/logs/prompt commands
 - [ ] Memory merge on agent completion
 - [ ] Orchestration patterns (sequential/parallel/fan-in)
-- [ ] Prompt Agent hook integration
 
-### Phase 4: Polish (v0.9.0)
+### v2.1.0 — Enhanced Memory
+- [ ] Enhanced `matrix_store()` with structured metadata
+- [ ] Repo indexing infrastructure
+- [ ] Solution linking and supersedes
+
+### Future
 - [ ] Resource limits and auto-suspend
 - [ ] Agent health monitoring
-- [ ] Full test coverage
-- [ ] Documentation
-
-### Phase 5: Release (v1.0.0)
-- [ ] Performance optimization
-- [ ] Edge case handling
-- [ ] Migration guide from v0.5.x
-- [ ] Homebrew formula update
+- [ ] Windows WSL support
 
 ---
 
@@ -632,20 +642,20 @@ matrix spawn feature/auth --prompt "fix the auth"
 
 ---
 
-## Completed (Previous Versions)
+## Completed (v1.0.0)
 
 - [x] Core MCP tools (recall, store, reward, failure, status)
 - [x] Local embeddings with transformers.js
-- [x] Repository fingerprinting
-- [x] Context-aware scoring
-- [x] CLI tool
-- [x] Homebrew distribution
+- [x] Repository fingerprinting + context-aware scoring
+- [x] Plugin-only distribution (Claude Code)
 - [x] Comprehensive test suite
-- [x] Claude Code hooks integration
+- [x] Claude Code hooks integration (7 hooks)
 - [x] Warning system (files/packages)
 - [x] Complexity estimation
 - [x] Package auditing (CVEs, deprecation)
-- [x] Prompt Agent MCP tool (`matrix_prompt`) - analyzes prompts for ambiguity, detects shortcuts, injects context
+- [x] Prompt Agent MCP tool (`matrix_prompt`)
+- [x] Prompt Agent hook integration (runs before complexity assessment)
+- [x] Context7 WebFetch/WebSearch intercept hooks
 
 ---
 

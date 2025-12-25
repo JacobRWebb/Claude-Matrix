@@ -40,6 +40,13 @@ export interface MatrixConfig {
     skipDeprecationWarnings: boolean;
     sizeWarningThreshold: number;
   };
+  indexing: {
+    enabled: boolean;
+    excludePatterns: string[];
+    maxFileSize: number;
+    timeout: number;
+    includeTests: boolean;
+  };
 }
 
 function getDownloadsDirectory(): string {
@@ -81,6 +88,13 @@ export const DEFAULT_CONFIG: MatrixConfig = {
     skipDeprecationWarnings: false,
     sizeWarningThreshold: 500000,
   },
+  indexing: {
+    enabled: true,
+    excludePatterns: [],
+    maxFileSize: 1024 * 1024, // 1MB
+    timeout: 60,
+    includeTests: false,
+  },
 };
 
 let cachedConfig: MatrixConfig | null = null;
@@ -108,6 +122,9 @@ function deepMerge(target: MatrixConfig, source: Partial<MatrixConfig>): MatrixC
   }
   if (source.hooks) {
     result.hooks = { ...result.hooks, ...source.hooks };
+  }
+  if (source.indexing) {
+    result.indexing = { ...result.indexing, ...source.indexing };
   }
 
   return result;

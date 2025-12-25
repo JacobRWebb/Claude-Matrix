@@ -135,3 +135,75 @@ CREATE INDEX IF NOT EXISTS idx_dep_installs_session ON dependency_installs(sessi
 CREATE INDEX IF NOT EXISTS idx_dep_installs_repo ON dependency_installs(repo_id);
 CREATE INDEX IF NOT EXISTS idx_session_summaries_session ON session_summaries(session_id);
 CREATE INDEX IF NOT EXISTS idx_api_cache_created ON api_cache(created_at);
+
+-- ============================================================================
+-- Code Indexer Tables (Repository Symbol Index)
+-- ============================================================================
+
+-- Track indexed files and their state
+CREATE TABLE IF NOT EXISTS repo_files (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    repo_id TEXT NOT NULL,
+    file_path TEXT NOT NULL,           -- relative to repo root
+    mtime INTEGER NOT NULL,            -- file modification time (unix timestamp)
+    hash TEXT,                         -- content hash for dedup
+    indexed_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(repo_id, file_path)
+    -- No FK: repo_id may be a hash-based ID without full repos entry
+);
+
+-- Symbol index (functions, classes, variables, types)
+CREATE TABLE IF NOT EXISTS symbols (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    repo_id TEXT NOT NULL,
+    file_id INTEGER NOT NULL,
+    name TEXT NOT NULL,                -- symbol name
+    kind TEXT NOT NULL,                -- 'function' | 'class' | 'variable' | 'type' | 'interface' | 'enum' | 'const'
+    line INTEGER NOT NULL,             -- definition line (1-indexed)
+    column INTEGER NOT NULL,           -- definition column (0-indexed)
+    end_line INTEGER,                  -- end of definition
+    exported INTEGER DEFAULT 0,        -- is it exported? (SQLite boolean)
+    is_default INTEGER DEFAULT 0,      -- is default export?
+    scope TEXT,                        -- parent scope (class name, module, etc.)
+    signature TEXT,                    -- function signature or type info
+    FOREIGN KEY (file_id) REFERENCES repo_files(id) ON DELETE CASCADE
+);
+
+-- Import statements in files
+CREATE TABLE IF NOT EXISTS imports (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    file_id INTEGER NOT NULL,
+    imported_name TEXT NOT NULL,       -- what's being imported
+    local_name TEXT,                   -- local alias (if renamed)
+    source_path TEXT NOT NULL,         -- from './foo' or 'lodash'
+    is_default INTEGER DEFAULT 0,      -- is default import?
+    is_namespace INTEGER DEFAULT 0,    -- is namespace import (import * as)?
+    is_type INTEGER DEFAULT 0,         -- is type-only import?
+    line INTEGER NOT NULL,
+    FOREIGN KEY (file_id) REFERENCES repo_files(id) ON DELETE CASCADE
+);
+
+-- References (where symbols are used) - optional, for find_references
+CREATE TABLE IF NOT EXISTS symbol_refs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    symbol_id INTEGER NOT NULL,
+    file_id INTEGER NOT NULL,
+    line INTEGER NOT NULL,
+    column INTEGER NOT NULL,
+    FOREIGN KEY (symbol_id) REFERENCES symbols(id) ON DELETE CASCADE,
+    FOREIGN KEY (file_id) REFERENCES repo_files(id) ON DELETE CASCADE
+);
+
+-- Indexes for fast queries
+CREATE INDEX IF NOT EXISTS idx_repo_files_repo ON repo_files(repo_id);
+CREATE INDEX IF NOT EXISTS idx_repo_files_path ON repo_files(repo_id, file_path);
+CREATE INDEX IF NOT EXISTS idx_symbols_name ON symbols(name);
+CREATE INDEX IF NOT EXISTS idx_symbols_repo ON symbols(repo_id);
+CREATE INDEX IF NOT EXISTS idx_symbols_file ON symbols(file_id);
+CREATE INDEX IF NOT EXISTS idx_symbols_kind ON symbols(kind);
+CREATE INDEX IF NOT EXISTS idx_symbols_exported ON symbols(exported);
+CREATE INDEX IF NOT EXISTS idx_imports_file ON imports(file_id);
+CREATE INDEX IF NOT EXISTS idx_imports_source ON imports(source_path);
+CREATE INDEX IF NOT EXISTS idx_imports_name ON imports(imported_name);
+CREATE INDEX IF NOT EXISTS idx_symbol_refs_symbol ON symbol_refs(symbol_id);
+CREATE INDEX IF NOT EXISTS idx_symbol_refs_file ON symbol_refs(file_id);

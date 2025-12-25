@@ -6,6 +6,12 @@ import {
   matrixFailure,
   matrixStatus,
   searchFailures,
+  matrixFindDefinition,
+  matrixListExports,
+  matrixSearchSymbols,
+  matrixGetImports,
+  matrixIndexStatus,
+  matrixReindex,
 } from '../tools/index.js';
 import {
   matrixWarnCheck,
@@ -17,6 +23,7 @@ import {
   type PackageEcosystem,
 } from '../tools/warn.js';
 import { matrixPrompt, type PromptInput } from '../tools/prompt.js';
+import type { SymbolKind } from '../indexer/types.js';
 
 export async function handleToolCall(name: string, args: Record<string, unknown>): Promise<string> {
   // Ensure DB is initialized
@@ -124,6 +131,50 @@ export async function handleToolCall(name: string, args: Record<string, unknown>
         rawPrompt: args['rawPrompt'] as string,
         mode: args['mode'] as PromptInput['mode'],
         skipClarification: args['skipClarification'] as boolean | undefined,
+      });
+      return JSON.stringify(result, null, 2);
+    }
+
+    // Code Index Tools
+    case 'matrix_find_definition': {
+      const result = matrixFindDefinition({
+        symbol: args['symbol'] as string,
+        kind: args['kind'] as SymbolKind | undefined,
+        file: args['file'] as string | undefined,
+      });
+      return JSON.stringify(result, null, 2);
+    }
+
+    case 'matrix_list_exports': {
+      const result = matrixListExports({
+        path: args['path'] as string | undefined,
+      });
+      return JSON.stringify(result, null, 2);
+    }
+
+    case 'matrix_search_symbols': {
+      const result = matrixSearchSymbols({
+        query: args['query'] as string,
+        limit: args['limit'] as number | undefined,
+      });
+      return JSON.stringify(result, null, 2);
+    }
+
+    case 'matrix_get_imports': {
+      const result = matrixGetImports({
+        file: args['file'] as string,
+      });
+      return JSON.stringify(result, null, 2);
+    }
+
+    case 'matrix_index_status': {
+      const result = matrixIndexStatus();
+      return JSON.stringify(result, null, 2);
+    }
+
+    case 'matrix_reindex': {
+      const result = await matrixReindex({
+        full: args['full'] as boolean | undefined,
       });
       return JSON.stringify(result, null, 2);
     }

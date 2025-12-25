@@ -1,99 +1,128 @@
 # Claude Matrix
 
-> **Note**: Looking for the old CLI version? See the [`legacy-main`](https://github.com/ojowwalker77/Claude-Matrix/tree/legacy-main) branch.
+**Claude on Rails** - Tooling System for Claude Code.
 
-#### NOT an official Anthropic tool
+> Not an official Anthropic tool.
 
-**Tooling System for Claude Code** - Claude on Rails.
+## Features
 
-## Requirements
+- **Memory** - Solutions persist across sessions with semantic search
+- **Code Index** - Fast navigation for TypeScript/JavaScript codebases
+- **Warnings** - Track problematic files and packages
+- **Hooks** - Automatic context injection, package auditing, library docs
+- **Context7** - Up-to-date documentation for 100+ libraries
 
-- [Bun](https://bun.sh) v1.0+ (`curl -fsSL https://bun.sh/install | bash`)
-- [Claude Code](https://claude.ai/code) v2.0+
-
-## Installation
-
-Inside Claude Code, run:
+## Install
 
 ```
 /plugin marketplace add ojowwalker77/Claude-Matrix
 /plugin install matrix@ojowwalker77-Claude-Matrix
 ```
 
-That's it. Matrix initializes automatically on first session.
-
-## What It Does
-
-Matrix gives Claude Code a memory that persists across sessions:
-
-- **Recall solutions** - Semantic search finds relevant past solutions
-- **Learn from errors** - Records failures and their fixes
-- **Warn about problems** - Flags problematic files and packages
-- **Audit dependencies** - Checks packages for CVEs before install
-- **Context7 included** - Up-to-date library documentation
-
-## Screenshots
-
-### Checking Matrix (matrix_recall)
-<img width="1068" alt="Matrix recall in action" src="https://github.com/user-attachments/assets/bccbb0d2-f84d-4b92-b444-16a2acca24cc" />
-
-### Rewarding Solutions (matrix_reward)
-<img width="1582" alt="Matrix reward feedback" src="https://github.com/user-attachments/assets/5e818c6b-0652-42f6-8f0d-03579ac955cc" />
+Requires [Bun](https://bun.sh) v1.0+ and [Claude Code](https://claude.ai/code) v2.0+.
 
 ## MCP Tools
 
-Available automatically after install:
+### Memory
 
-| Tool | Description |
-|------|-------------|
+Claude learns from your solutions and mistakes:
+
+```
+You solve a problem
+    ↓
+Matrix stores it with semantic embeddings
+    ↓
+Next time you face something similar, Matrix recalls it
+    ↓
+Feedback improves rankings over time
+```
+
+| Tool | Purpose |
+|------|---------|
 | `matrix_recall` | Search for relevant solutions |
 | `matrix_store` | Save a solution for future use |
-| `matrix_reward` | Provide feedback on a solution |
-| `matrix_failure` | Record an error and its fix |
-| `matrix_status` | Get memory statistics |
+| `matrix_reward` | Feedback on recalled solutions |
+| `matrix_failure` | Record errors and fixes |
+| `matrix_status` | Memory statistics |
+
+### Code Index
+
+Fast navigation for TypeScript/JavaScript (auto-indexed on session start):
+
+| Tool | Purpose |
+|------|---------|
+| `matrix_find_definition` | Find where a symbol is defined |
+| `matrix_search_symbols` | Search symbols by partial name |
+| `matrix_list_exports` | List exports from file/directory |
+| `matrix_get_imports` | Get imports for a file |
+| `matrix_reindex` | Manually trigger reindexing |
+
+### Warnings
+
+Track problematic files and packages:
+
+| Tool | Purpose |
+|------|---------|
 | `matrix_warn_check` | Check if file/package has warnings |
-| `matrix_warn_add` | Add a warning |
+| `matrix_warn_add` | Mark something as problematic |
 | `matrix_warn_remove` | Remove a warning |
 | `matrix_warn_list` | List all warnings |
 
-**Context7** (bundled):
-| Tool | Description |
-|------|-------------|
-| `resolve-library-id` | Find library ID for documentation |
-| `get-library-docs` | Get up-to-date library documentation |
+### Context7
+
+Up-to-date library documentation (bundled):
+
+| Tool | Purpose |
+|------|---------|
+| `resolve-library-id` | Find library ID for docs |
+| `get-library-docs` | Get current documentation |
+
+## Automatic Hooks
+
+Matrix runs automatically in the background:
+
+| When | What Happens |
+|------|--------------|
+| Session starts | Initialize database, index TypeScript/JavaScript files |
+| You send a prompt | Analyze complexity, inject relevant memories, detect code navigation queries |
+| Before `npm install` | Check for CVEs, deprecation, bundle size |
+| Before editing a file | Warn if file has known issues |
+| Before web fetch | Intercept library docs → use Context7 instead |
+| Session ends | Offer to save significant solutions |
 
 ## Slash Commands
 
-| Command | Description |
-|---------|-------------|
-| `/matrix:search <query>` | Search for solutions |
+| Command | Purpose |
+|---------|---------|
+| `/matrix:search <query>` | Search solutions |
 | `/matrix:list` | List stored solutions |
-| `/matrix:stats` | Show memory statistics |
-| `/matrix:warn` | Manage file/package warnings |
+| `/matrix:stats` | Show statistics |
+| `/matrix:warn` | Manage warnings |
 | `/matrix:export` | Export database |
-| `/matrix:verify` | Check installation health |
+| `/matrix:verify` | Check installation |
+| `/matrix:reindex` | Reindex repository |
 
-## Hooks (Automatic)
+## Configuration
 
-Matrix hooks run automatically:
+Matrix stores config at `~/.claude/matrix.config`:
 
-| Hook | Trigger | Action |
-|------|---------|--------|
-| **SessionStart** | Claude Code starts | Initializes database on first run |
-| **UserPromptSubmit** | User sends prompt | Injects relevant memories for complex tasks |
-| **PreToolUse:Bash** | Before package install | Audits for CVEs, deprecation, size |
-| **PreToolUse:Edit** | Before file edit | Warns about problematic files |
-| **PostToolUse:Bash** | After package install | Logs installed dependencies |
-| **Stop** | Session ends | Offers to save significant sessions |
+```json
+{
+  "indexing": {
+    "enabled": true,
+    "excludePatterns": [],
+    "maxFileSize": 1048576,
+    "timeout": 60,
+    "includeTests": false
+  },
+  "hooks": {
+    "enabled": true,
+    "complexityThreshold": 5
+  }
+}
+```
 
-## How It Works
-
-1. You solve a problem
-2. Matrix stores the solution with semantic embeddings
-3. Next time you face a similar problem, Matrix recalls it
-4. Feedback improves solution rankings over time
-
-## Data Location
+## Data
 
 ```
 ~/.claude/matrix/
@@ -102,60 +131,28 @@ Matrix hooks run automatically:
 └── .initialized   # Version marker
 ```
 
-## Privacy
-
-- 100% local - no data leaves your machine
-- No API calls for memory - embeddings computed locally
-- Package auditing uses public APIs (OSV.dev, npm, Bundlephobia)
-- Single SQLite file - easy to backup or delete
+All data stays local. No external API calls for memory. Package auditing uses public APIs (OSV.dev, npm, Bundlephobia).
 
 ## Development
-
-### Prerequisites
-
-- [Bun](https://bun.sh) v1.0+
-- [Claude Code](https://claude.ai/code) v2.0+
-
-### Setup
 
 ```bash
 git clone https://github.com/ojowwalker77/Claude-Matrix
 cd Claude-Matrix
 bun install
 bun run build
+bun test
 ```
 
-### Test Locally
-
+Test locally:
 ```bash
 claude --plugin-dir /path/to/Claude-Matrix
-```
-
-### Contributing
-
-1. Fork and branch from `dev`
-2. Make changes and run `bun test`
-3. Build with `bun run build`
-4. Open PR targeting `dev` branch
-
-## Upgrading
-
-Inside Claude Code:
-
-```
-/plugin update matrix@ojowwalker77-Claude-Matrix
 ```
 
 ## Links
 
 - [Changelog](CHANGELOG.md)
 - [Roadmap](ROADMAP.md)
-
-## Contributors
-
-<!-- CONTRIBUTORS-START -->
-<a href="https://github.com/CairoAC"><img src="https://github.com/CairoAC.png" width="50" height="50" alt="CairoAC"/></a>
-<!-- CONTRIBUTORS-END -->
+- [Issues](https://github.com/ojowwalker77/Claude-Matrix/issues)
 
 ## License
 

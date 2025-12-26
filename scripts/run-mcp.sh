@@ -15,5 +15,10 @@ if ! command -v bun &> /dev/null; then
   exit 1
 fi
 
+# Auto-install dependencies if missing
+if [ ! -d "$PLUGIN_DIR/node_modules" ]; then
+  (cd "$PLUGIN_DIR" && bun install --silent) >&2
+fi
+
 # Run MCP server
 exec bun run "$PLUGIN_DIR/src/index.ts" "$@"

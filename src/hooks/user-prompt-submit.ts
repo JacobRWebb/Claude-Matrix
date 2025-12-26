@@ -3,7 +3,10 @@
  * UserPromptSubmit Hook
  *
  * Runs when user submits a prompt (before Claude processes it).
- * Checks complexity and injects relevant Matrix memories as context.
+ * Flow:
+ *   1. Run Prompt Agent analysis (shortcuts, ambiguity, context)
+ *   2. Estimate complexity
+ *   3. Inject Matrix memories if complexity >= threshold
  *
  * Exit codes:
  *   0 = Success (stdout added to context)
@@ -14,6 +17,7 @@
 import {
   readStdin,
   outputText,
+  outputJson,
   hooksEnabled,
   getHooksConfig,
   type UserPromptSubmitInput,
@@ -21,10 +25,106 @@ import {
 import { estimateComplexity } from './complexity.js';
 import { matrixRecall } from '../tools/recall.js';
 import { searchFailures } from '../tools/failure.js';
-import { printToUser, renderMemoryBox, renderErrorBox } from './ui.js';
+import { printToUser, renderMemoryBox, renderErrorBox, renderBox } from './ui.js';
+import { analyzePromptSilent, type SilentAnalysisResult } from './prompt-utils.js';
+import {
+  matrixFindDefinition,
+  matrixSearchSymbols,
+  matrixIndexStatus,
+} from '../tools/index-tools.js';
 
 const MAX_CONTEXT_WORDS = 500;
 const MAX_SOLUTION_CHARS = 300;
+
+// Patterns for detecting code navigation queries
+const DEFINITION_PATTERNS = [
+  /where\s+is\s+(\w+)\s+defined/i,
+  /find\s+(?:the\s+)?definition\s+(?:of\s+)?(\w+)/i,
+  /show\s+me\s+(?:the\s+)?(\w+)\s+(?:function|class|type|interface)/i,
+  /what\s+file\s+(?:has|contains)\s+(\w+)/i,
+  /where\s+(?:is|are)\s+(\w+)\s+(?:located|declared)/i,
+  /go\s+to\s+(\w+)/i,
+  /find\s+(\w+)\s+(?:function|class|method|type)/i,
+];
+
+const SEARCH_PATTERNS = [
+  /search\s+(?:for\s+)?(?:symbol\s+)?(\w+)/i,
+  /find\s+(?:all\s+)?(?:symbols?\s+)?(?:like\s+|matching\s+)?(\w+)/i,
+  /list\s+(?:all\s+)?(\w+)\s+functions/i,
+];
+
+/**
+ * Detect if prompt is asking about code navigation
+ * Returns symbol name if detected, null otherwise
+ */
+function detectCodeNavQuery(prompt: string): { type: 'definition' | 'search'; symbol: string } | null {
+  // Check definition patterns
+  for (const pattern of DEFINITION_PATTERNS) {
+    const match = prompt.match(pattern);
+    if (match?.[1]) {
+      return { type: 'definition', symbol: match[1] };
+    }
+  }
+
+  // Check search patterns
+  for (const pattern of SEARCH_PATTERNS) {
+    const match = prompt.match(pattern);
+    if (match?.[1]) {
+      return { type: 'search', symbol: match[1] };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Query code index and format results for context injection
+ */
+function queryCodeIndex(query: { type: 'definition' | 'search'; symbol: string }): string | null {
+  try {
+    // Check if index is available
+    const status = matrixIndexStatus();
+    if (!status.indexed) {
+      return null;
+    }
+
+    if (query.type === 'definition') {
+      const result = matrixFindDefinition({ symbol: query.symbol });
+      if (!result.found || !result.definitions?.length) {
+        return null;
+      }
+
+      const lines = [`[Code Index: "${query.symbol}" definitions]`];
+      for (const def of result.definitions.slice(0, 5)) {
+        const sig = def.signature ? ` - ${def.signature}` : '';
+        const exp = def.exported ? ' (exported)' : '';
+        lines.push(`• ${def.file}:${def.line} [${def.kind}]${sig}${exp}`);
+      }
+      lines.push('[End Code Index]');
+      return lines.join('\n');
+    }
+
+    if (query.type === 'search') {
+      const result = matrixSearchSymbols({ query: query.symbol, limit: 10 });
+      if (!result.found || !result.results?.length) {
+        return null;
+      }
+
+      const lines = [`[Code Index: symbols matching "${query.symbol}"]`];
+      for (const sym of result.results.slice(0, 10)) {
+        const sig = sym.signature ? ` - ${sym.signature}` : '';
+        lines.push(`• ${sym.file}:${sym.line} [${sym.kind}]${sig}`);
+      }
+      lines.push('[End Code Index]');
+      return lines.join('\n');
+    }
+
+    return null;
+  } catch {
+    // Silently fail - index might not be available
+    return null;
+  }
+}
 
 /**
  * Format solutions for context injection
@@ -120,17 +220,85 @@ export async function run() {
     const config = getHooksConfig();
     const threshold = config.complexityThreshold ?? 5;
 
-    // Estimate complexity
+    // ============================================
+    // STEP 1: Run Prompt Agent analysis FIRST
+    // ============================================
+    const promptAnalysis = await analyzePromptSilent(input.prompt, input.cwd);
+
+    // Handle abort shortcuts (nah, nope, abort, cancel)
+    if (promptAnalysis.shortcut?.action === 'abort') {
+      outputJson({
+        hookSpecificOutput: {
+          permissionDecision: 'deny',
+          permissionDecisionReason: 'User aborted with shortcut: ' + promptAnalysis.shortcut.trigger,
+        },
+      });
+      process.exit(0);
+    }
+
+    // Handle execute shortcuts (yolo, ship it, just do it)
+    // Skip complexity check and memory injection, let Claude proceed fast
+    if (promptAnalysis.shortcut?.action === 'execute') {
+      const box = renderBox('Prompt Agent', [
+        `Shortcut: "${promptAnalysis.shortcut.trigger}"`,
+        'Skipping checks, proceeding with best judgment',
+      ]);
+      printToUser(box);
+      process.exit(0);
+    }
+
+    // Low confidence warning (non-blocking)
+    if (promptAnalysis.confidence < 50 && promptAnalysis.ambiguity) {
+      const warningBox = renderBox('Prompt Agent', [
+        `Confidence: ${promptAnalysis.confidence}%`,
+        `Ambiguity: ${promptAnalysis.ambiguity.question}`,
+        'Tip: Be more specific for better results',
+      ]);
+      printToUser(warningBox);
+    }
+
+    // ============================================
+    // STEP 2: Check for code navigation queries
+    // ============================================
+    let codeIndexContext: string | null = null;
+    const codeNavQuery = detectCodeNavQuery(input.prompt);
+    if (codeNavQuery) {
+      codeIndexContext = queryCodeIndex(codeNavQuery);
+      if (codeIndexContext) {
+        const box = renderBox('Code Index', [
+          `Found: ${codeNavQuery.symbol}`,
+        ]);
+        printToUser(box);
+      }
+    }
+
+    // ============================================
+    // STEP 3: Estimate complexity
+    // ============================================
     const complexity = await estimateComplexity(input.prompt);
 
     // Skip memory injection if below threshold
     if (complexity.score < threshold) {
+      // Still inject prompt agent context and code index if available
+      const lowComplexityContext: string[] = [];
+      if (promptAnalysis.contextInjected.length > 0) {
+        lowComplexityContext.push(`[Prompt Context]\n${promptAnalysis.contextInjected.join('\n')}`);
+      }
+      if (codeIndexContext) {
+        lowComplexityContext.push(codeIndexContext);
+      }
+      if (lowComplexityContext.length > 0) {
+        outputText(lowComplexityContext.join('\n\n'));
+      }
+
       const box = renderMemoryBox(complexity.score, 0, 0, true, threshold);
       printToUser(box);
       process.exit(0);
     }
 
-    // Search Matrix memory
+    // ============================================
+    // STEP 4: Search Matrix memory
+    // ============================================
     const recallResult = await matrixRecall({
       query: input.prompt.slice(0, 1000), // Limit query length
       limit: 3,
@@ -147,9 +315,29 @@ export async function run() {
       complexity
     );
 
-    // Output context to Claude if we found something
+    // ============================================
+    // STEP 5: Output combined context
+    // ============================================
+    const contextParts: string[] = [];
+
+    // Add prompt agent context first
+    if (promptAnalysis.contextInjected.length > 0) {
+      contextParts.push(`[Prompt Context]\n${promptAnalysis.contextInjected.join('\n')}`);
+    }
+
+    // Add code index context
+    if (codeIndexContext) {
+      contextParts.push(codeIndexContext);
+    }
+
+    // Add Matrix memory context
     if (context) {
-      outputText(context);
+      contextParts.push(context);
+    }
+
+    // Output all context to Claude
+    if (contextParts.length > 0) {
+      outputText(contextParts.join('\n\n'));
     }
 
     // Render and display box to user

@@ -261,4 +261,94 @@ export const TOOLS: Tool[] = [
       required: ['rawPrompt'],
     },
   },
+  // Code Index Tools
+  {
+    name: 'matrix_find_definition',
+    description: 'Find where a symbol (function, class, type, variable) is defined in the codebase. Use this to navigate to symbol definitions.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        symbol: {
+          type: 'string',
+          description: 'The symbol name to find (e.g., "handleRequest", "UserService")',
+        },
+        kind: {
+          type: 'string',
+          enum: ['function', 'class', 'interface', 'type', 'enum', 'variable', 'const', 'method', 'property'],
+          description: 'Optional: filter by symbol kind',
+        },
+        file: {
+          type: 'string',
+          description: 'Optional: limit search to a specific file path',
+        },
+      },
+      required: ['symbol'],
+    },
+  },
+  {
+    name: 'matrix_list_exports',
+    description: 'List all exported symbols from a file or directory. Use to understand what a module exposes.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        path: {
+          type: 'string',
+          description: 'File or directory path to list exports from (e.g., "src/utils" or "src/index.ts")',
+        },
+      },
+    },
+  },
+  {
+    name: 'matrix_search_symbols',
+    description: 'Search for symbols by partial name match. Use when you know part of a symbol name.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Partial symbol name to search for (e.g., "handle" finds "handleRequest", "handleError")',
+        },
+        limit: {
+          type: 'number',
+          description: 'Maximum results to return (default: 20)',
+        },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'matrix_get_imports',
+    description: 'Get all imports in a specific file. Use to understand file dependencies.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          description: 'File path to get imports from',
+        },
+      },
+      required: ['file'],
+    },
+  },
+  {
+    name: 'matrix_index_status',
+    description: 'Get the current status of the code index for this repository.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+  {
+    name: 'matrix_reindex',
+    description: 'Manually trigger repository reindexing. Use to refresh the code index after changes.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        full: {
+          type: 'boolean',
+          description: 'Force full reindex, ignoring incremental mode (default: false)',
+        },
+      },
+    },
+  },
 ];

@@ -42,6 +42,16 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "WebFetch|WebSearch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/run-hooks.sh pre-tool-web",
+            "timeout": 15
+          }
+        ]
       }
     ],
     "PostToolUse": [

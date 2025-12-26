@@ -4,6 +4,7 @@ import { run as userPromptSubmit } from './user-prompt-submit.js';
 import { run as preToolBash } from './pre-tool-bash.js';
 import { run as postToolBash } from './post-tool-bash.js';
 import { run as preToolEdit } from './pre-tool-edit.js';
+import { run as preToolWeb } from './pre-tool-web.js';
 import { run as stopSession } from './stop-session.js';
 
 const hooks: Record<string, () => Promise<void>> = {
@@ -12,6 +13,7 @@ const hooks: Record<string, () => Promise<void>> = {
   'pre-tool-bash': preToolBash,
   'post-tool-bash': postToolBash,
   'pre-tool-edit': preToolEdit,
+  'pre-tool-web': preToolWeb,
   'stop-session': stopSession,
 };
 

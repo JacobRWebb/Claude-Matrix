@@ -21,22 +21,6 @@ import type { LanguageParser } from './languages/base.js';
 // Parser cache by language ID
 const parserCache = new Map<string, LanguageParser>();
 
-// Initialization promise to ensure single init
-let initPromise: Promise<void> | null = null;
-
-/**
- * Initialize the tree-sitter parser (called once)
- */
-async function ensureInitialized(): Promise<void> {
-  if (initPromise) return initPromise;
-
-  initPromise = (async () => {
-    await initParser();
-  })();
-
-  return initPromise;
-}
-
 /**
  * Get or create a language parser instance
  */
@@ -45,7 +29,6 @@ async function getParserForLanguage(config: LanguageConfig): Promise<LanguagePar
   if (cached) return cached;
 
   try {
-    await ensureInitialized();
     const parser = await initParser();
     const language = await loadLanguage(config);
 

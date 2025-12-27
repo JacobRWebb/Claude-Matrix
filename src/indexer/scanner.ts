@@ -128,7 +128,10 @@ export async function scanRepository(options: ScanOptions): Promise<ScannedFile[
     const shouldExclude = allExcludes.some(excludePattern => {
       // Handle glob patterns
       if (excludePattern.includes('*')) {
-        // Convert glob to regex
+        // Convert glob to regex using placeholder approach
+        // Note: This is a simplified glob conversion that handles common cases.
+        // The placeholder pattern is extremely unlikely in real file paths.
+        // For more robust glob matching, consider using minimatch library.
         const regex = excludePattern
           .replace(/\./g, '\\.')
           .replace(/\*\*/g, '___DOUBLESTAR___')

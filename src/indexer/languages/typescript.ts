@@ -242,7 +242,9 @@ export class TypeScriptParser extends LanguageParser {
     scope?: string
   ): void {
     const exported = this.isExported(node);
-    const isConst = node.type === 'lexical_declaration' && node.text.startsWith('const');
+    // Check for const keyword in lexical_declaration children
+    const isConst = node.type === 'lexical_declaration' &&
+      node.children.some(child => child.type === 'const');
 
     for (const child of node.namedChildren) {
       if (child.type === 'variable_declarator') {

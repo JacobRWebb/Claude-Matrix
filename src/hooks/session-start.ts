@@ -14,7 +14,7 @@
  *   1 = Non-blocking error (show warning, continue)
  */
 
-import { existsSync, mkdirSync, writeFileSync, readFileSync, copyFileSync } from 'fs';
+import { existsSync, mkdirSync, writeFileSync, readFileSync, copyFileSync, readdirSync } from 'fs';
 import { join, basename } from 'path';
 import { homedir } from 'os';
 import { Database } from 'bun:sqlite';
@@ -361,10 +361,27 @@ function isIndexableProject(root: string): boolean {
   if (existsSync(join(root, 'composer.json'))) {
     return true;
   }
-  // C/C++ (CMake or Makefile)
+  // C/C++ (CMake or Makefile + source files to avoid false positives)
   if (existsSync(join(root, 'CMakeLists.txt')) ||
       existsSync(join(root, 'Makefile'))) {
-    return true;
+    // Verify actual C/C++ source files exist to avoid matching non-C/C++ projects
+    try {
+      const files = readdirSync(root);
+      const hasCppSources = files.some(f =>
+        /\.(c|cpp|cc|cxx|h|hpp|hxx)$/i.test(f)
+      );
+      if (hasCppSources) return true;
+      // Also check common src directory
+      const srcDir = join(root, 'src');
+      if (existsSync(srcDir)) {
+        const srcFiles = readdirSync(srcDir);
+        if (srcFiles.some(f => /\.(c|cpp|cc|cxx|h|hpp|hxx)$/i.test(f))) {
+          return true;
+        }
+      }
+    } catch {
+      // If we can't read directories, skip C/C++ detection
+    }
   }
   return false;
 }

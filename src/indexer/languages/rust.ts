@@ -72,7 +72,7 @@ export class RustParser extends LanguageParser {
           return false;
 
         case 'mod_item':
-          this.handleModItem(node, symbols);
+          this.handleModItem(node, symbols, content);
           return false;
       }
       return true;
@@ -271,7 +271,7 @@ export class RustParser extends LanguageParser {
     );
   }
 
-  private handleModItem(node: SyntaxNode, symbols: ExtractedSymbol[]): void {
+  private handleModItem(node: SyntaxNode, symbols: ExtractedSymbol[], content: string): void {
     const nameNode = this.getChildByField(node, 'name');
     if (!nameNode) return;
 
@@ -280,7 +280,7 @@ export class RustParser extends LanguageParser {
 
     // A module acts like a namespace
     symbols.push(
-      this.createSymbol(name, 'variable', node, {
+      this.createSymbol(name, 'namespace', node, {
         exported,
       })
     );
@@ -288,7 +288,7 @@ export class RustParser extends LanguageParser {
     // Recursively extract from module body
     const bodyNode = this.getChildByType(node, 'declaration_list');
     if (bodyNode) {
-      this.extractSymbols(bodyNode, '', symbols, name);
+      this.extractSymbols(bodyNode, content, symbols, name);
     }
   }
 

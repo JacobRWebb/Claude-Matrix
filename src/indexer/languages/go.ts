@@ -141,20 +141,32 @@ export class GoParser extends LanguageParser {
     for (const spec of node.namedChildren) {
       if (spec.type === 'var_spec' || spec.type === 'const_spec') {
         // Can have multiple names: var x, y, z int
-        const names = spec.descendantsOfType('identifier');
-        for (const nameNode of names) {
-          // Skip if it's part of a value (after =)
-          if (this.hasAncestorOfType(nameNode, 'expression_list')) continue;
-
-          const name = this.getNodeText(nameNode);
-          const exported = this.isExportedName(name);
-
-          symbols.push(
-            this.createSymbol(name, kind, nameNode, {
-              exported,
-            })
-          );
-          break; // Only first identifier is the name
+        // Get all identifiers that are direct children (not in value expressions)
+        // The 'name' field contains either a single identifier or an expression_list/identifier_list
+        const nameField = spec.childForFieldName('name');
+        if (nameField) {
+          if (nameField.type === 'identifier') {
+            // Single identifier case
+            const name = this.getNodeText(nameField);
+            symbols.push(
+              this.createSymbol(name, kind, nameField, {
+                exported: this.isExportedName(name),
+              })
+            );
+          } else {
+            // Multiple identifiers: expression_list or identifier_list
+            // Extract all identifier children
+            for (const child of nameField.namedChildren) {
+              if (child.type === 'identifier') {
+                const name = this.getNodeText(child);
+                symbols.push(
+                  this.createSymbol(name, kind, child, {
+                    exported: this.isExportedName(name),
+                  })
+                );
+              }
+            }
+          }
         }
       }
     }

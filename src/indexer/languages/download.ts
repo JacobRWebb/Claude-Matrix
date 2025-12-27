@@ -1,7 +1,7 @@
 /**
  * Grammar Downloader
  *
- * Downloads tree-sitter WASM grammars on-demand from GitHub releases.
+ * Downloads tree-sitter WASM grammars on-demand from unpkg CDN.
  * Caches them in ~/.claude/matrix/grammars/ for reuse.
  */
 

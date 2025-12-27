@@ -93,4 +93,56 @@ describe('solution storage', () => {
     expect(solution.successes).toBe(0);
     expect(solution.failures).toBe(0);
   });
+
+  test('stores enhanced metadata', () => {
+    const emb = mockEmbedding(384, 1);
+    const embBuffer = embeddingToBuffer(emb);
+
+    mockDb.query(`
+      INSERT INTO solutions (id, problem, problem_embedding, solution, scope, category, complexity, prerequisites)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run('sol_001', 'Problem', embBuffer, 'Solution', 'global', 'feature', 5, '["Node.js >= 18"]');
+
+    const solution = mockDb.query('SELECT category, complexity, prerequisites FROM solutions WHERE id = ?').get('sol_001') as {
+      category: string; complexity: number; prerequisites: string;
+    };
+
+    expect(solution.category).toBe('feature');
+    expect(solution.complexity).toBe(5);
+    expect(JSON.parse(solution.prerequisites)).toEqual(['Node.js >= 18']);
+  });
+
+  test('enforces category constraint', () => {
+    const emb = mockEmbedding(384, 1);
+    const embBuffer = embeddingToBuffer(emb);
+
+    expect(() => {
+      mockDb.query(`INSERT INTO solutions (id, problem, problem_embedding, solution, scope, category)
+        VALUES (?, ?, ?, ?, ?, ?)`).run('sol_001', 'Problem', embBuffer, 'Solution', 'global', 'invalid');
+    }).toThrow();
+  });
+
+  test('enforces complexity range', () => {
+    const emb = mockEmbedding(384, 1);
+    const embBuffer = embeddingToBuffer(emb);
+
+    expect(() => {
+      mockDb.query(`INSERT INTO solutions (id, problem, problem_embedding, solution, scope, complexity)
+        VALUES (?, ?, ?, ?, ?, ?)`).run('sol_001', 'Problem', embBuffer, 'Solution', 'global', 11);
+    }).toThrow();
+  });
+
+  test('stores supersedes relationship', () => {
+    const emb = mockEmbedding(384, 1);
+    const embBuffer = embeddingToBuffer(emb);
+
+    mockDb.query(`INSERT INTO solutions (id, problem, problem_embedding, solution, scope)
+      VALUES (?, ?, ?, ?, ?)`).run('sol_old', 'Old', embBuffer, 'Old solution', 'global');
+
+    mockDb.query(`INSERT INTO solutions (id, problem, problem_embedding, solution, scope, supersedes)
+      VALUES (?, ?, ?, ?, ?, ?)`).run('sol_new', 'New', embBuffer, 'New solution', 'global', 'sol_old');
+
+    const solution = mockDb.query('SELECT supersedes FROM solutions WHERE id = ?').get('sol_new') as { supersedes: string };
+    expect(solution.supersedes).toBe('sol_old');
+  });
 });

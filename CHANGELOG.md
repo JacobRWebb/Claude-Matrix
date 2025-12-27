@@ -2,6 +2,18 @@
 
 All notable changes to Claude Matrix are documented here.
 
+## [1.0.1] - 2025-12-27
+
+### Enhanced Memory System
+
+- **New `matrix_store` fields**: `category`, `complexity`, `prerequisites`, `antiPatterns`, `codeBlocks`, `relatedSolutions`, `supersedes`
+- **New `matrix_recall` filters**: `categoryFilter`, `maxComplexity`
+- **Auto-complexity**: Solutions get complexity 1-10 calculated automatically
+- **Solution evolution**: Track when solutions replace older ones via `supersedes`
+- **Schema migration**: v2 → v3 runs automatically
+
+---
+
 ## [1.0.0] - 2025-12-25
 
 ### Major Release - "Claude on Rails"

@@ -4,7 +4,7 @@ import { homedir } from 'os';
 import { SCHEMA_SQL } from './schema.js';
 
 // Schema version - increment when schema changes
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 // Migration definitions - each migration upgrades from (version - 1) to version
 const migrations: Record<number, string> = {
@@ -62,6 +62,20 @@ const migrations: Record<number, string> = {
     CREATE INDEX IF NOT EXISTS idx_session_summaries_session ON session_summaries(session_id);
     CREATE INDEX IF NOT EXISTS idx_api_cache_created ON api_cache(created_at);
   `,
+
+  // v2 -> v3: Enhanced memory with structured metadata
+  3: `
+    ALTER TABLE solutions ADD COLUMN category TEXT CHECK(category IN ('bugfix', 'feature', 'refactor', 'config', 'pattern', 'optimization'));
+    ALTER TABLE solutions ADD COLUMN complexity INTEGER CHECK(complexity >= 1 AND complexity <= 10);
+    ALTER TABLE solutions ADD COLUMN prerequisites JSON DEFAULT '[]';
+    ALTER TABLE solutions ADD COLUMN anti_patterns JSON DEFAULT '[]';
+    ALTER TABLE solutions ADD COLUMN code_blocks JSON DEFAULT '[]';
+    ALTER TABLE solutions ADD COLUMN related_solutions JSON DEFAULT '[]';
+    ALTER TABLE solutions ADD COLUMN supersedes TEXT REFERENCES solutions(id);
+    CREATE INDEX IF NOT EXISTS idx_solutions_category ON solutions(category);
+    CREATE INDEX IF NOT EXISTS idx_solutions_complexity ON solutions(complexity);
+    CREATE INDEX IF NOT EXISTS idx_solutions_supersedes ON solutions(supersedes);
+  `,
 };
 
 function getDbPath(): string {
@@ -98,7 +112,19 @@ function getCurrentVersion(db: Database): number {
         `).all() as { name: string }[];
 
         const hasAllV2Tables = v2Tables.every(t => existingTables.some(e => e.name === t));
-        const initialVersion = hasAllV2Tables ? 2 : 1;
+
+        // Check for v3 columns
+        let hasV3Columns = false;
+        if (hasAllV2Tables) {
+          try {
+            const cols = db.query(`PRAGMA table_info(solutions)`).all() as { name: string }[];
+            hasV3Columns = cols.some(c => c.name === 'category');
+          } catch {
+            hasV3Columns = false;
+          }
+        }
+
+        const initialVersion = hasV3Columns ? 3 : (hasAllV2Tables ? 2 : 1);
         db.exec(`INSERT INTO schema_version (version) VALUES (${initialVersion})`);
         return initialVersion;
       } else {

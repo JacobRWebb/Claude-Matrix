@@ -32,7 +32,15 @@ CREATE TABLE IF NOT EXISTS solutions (
     failures INTEGER DEFAULT 0,
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now')),
-    last_used_at TEXT
+    last_used_at TEXT,
+    -- v1.0.1 Enhanced metadata
+    category TEXT CHECK(category IN ('bugfix', 'feature', 'refactor', 'config', 'pattern', 'optimization')),
+    complexity INTEGER CHECK(complexity >= 1 AND complexity <= 10),
+    prerequisites JSON DEFAULT '[]',
+    anti_patterns JSON DEFAULT '[]',
+    code_blocks JSON DEFAULT '[]',
+    related_solutions JSON DEFAULT '[]',
+    supersedes TEXT REFERENCES solutions(id)
 );
 
 -- Falhas registradas
@@ -70,6 +78,9 @@ CREATE INDEX IF NOT EXISTS idx_solutions_scope ON solutions(scope);
 CREATE INDEX IF NOT EXISTS idx_solutions_score ON solutions(score DESC);
 CREATE INDEX IF NOT EXISTS idx_solutions_scope_score ON solutions(scope, score DESC);
 CREATE INDEX IF NOT EXISTS idx_solutions_created ON solutions(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_solutions_category ON solutions(category);
+CREATE INDEX IF NOT EXISTS idx_solutions_complexity ON solutions(complexity);
+CREATE INDEX IF NOT EXISTS idx_solutions_supersedes ON solutions(supersedes);
 CREATE INDEX IF NOT EXISTS idx_failures_repo ON failures(repo_id);
 CREATE INDEX IF NOT EXISTS idx_failures_signature ON failures(error_signature);
 CREATE INDEX IF NOT EXISTS idx_failures_type ON failures(error_type);

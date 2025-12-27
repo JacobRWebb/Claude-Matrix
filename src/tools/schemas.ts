@@ -7,23 +7,12 @@ export const TOOLS: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        query: {
-          type: 'string',
-          description: 'What problem are you trying to solve?',
-        },
-        limit: {
-          type: 'number',
-          description: 'Maximum number of results (default: 5)',
-        },
-        minScore: {
-          type: 'number',
-          description: 'Minimum similarity score 0-1 (default: 0.3)',
-        },
-        scopeFilter: {
-          type: 'string',
-          enum: ['all', 'repo', 'stack', 'global'],
-          description: 'Filter by solution scope (default: all)',
-        },
+        query: { type: 'string', description: 'What problem are you trying to solve?' },
+        limit: { type: 'number', description: 'Maximum number of results (default: 5)' },
+        minScore: { type: 'number', description: 'Minimum similarity score 0-1 (default: 0.3)' },
+        scopeFilter: { type: 'string', enum: ['all', 'repo', 'stack', 'global'], description: 'Filter by solution scope (default: all)' },
+        categoryFilter: { type: 'string', enum: ['bugfix', 'feature', 'refactor', 'config', 'pattern', 'optimization'], description: 'Filter by category' },
+        maxComplexity: { type: 'number', minimum: 1, maximum: 10, description: 'Only return solutions with complexity <= this value' },
       },
       required: ['query'],
     },
@@ -34,29 +23,18 @@ export const TOOLS: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        problem: {
-          type: 'string',
-          description: 'The problem that was solved',
-        },
-        solution: {
-          type: 'string',
-          description: 'The solution (code, steps, explanation)',
-        },
-        scope: {
-          type: 'string',
-          enum: ['global', 'stack', 'repo'],
-          description: 'global=works anywhere, stack=same tech stack, repo=this repo only',
-        },
-        tags: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Tags for categorization (e.g., ["auth", "oauth", "google"])',
-        },
-        filesAffected: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Files that were modified',
-        },
+        problem: { type: 'string', description: 'The problem that was solved' },
+        solution: { type: 'string', description: 'The solution (code, steps, explanation)' },
+        scope: { type: 'string', enum: ['global', 'stack', 'repo'], description: 'global=works anywhere, stack=same tech stack, repo=this repo only' },
+        tags: { type: 'array', items: { type: 'string' }, description: 'Tags for categorization' },
+        filesAffected: { type: 'array', items: { type: 'string' }, description: 'Files that were modified' },
+        category: { type: 'string', enum: ['bugfix', 'feature', 'refactor', 'config', 'pattern', 'optimization'], description: 'Solution type' },
+        complexity: { type: 'number', minimum: 1, maximum: 10, description: 'Complexity 1-10 (auto-calculated if not provided)' },
+        prerequisites: { type: 'array', items: { type: 'string' }, description: 'Conditions for this solution to apply' },
+        antiPatterns: { type: 'array', items: { type: 'string' }, description: 'What NOT to do' },
+        codeBlocks: { type: 'array', items: { type: 'object', properties: { language: { type: 'string' }, code: { type: 'string' }, description: { type: 'string' } }, required: ['language', 'code', 'description'] }, description: 'Code snippets' },
+        relatedSolutions: { type: 'array', items: { type: 'string' }, description: 'IDs of related solutions' },
+        supersedes: { type: 'string', description: 'ID of solution this replaces' },
       },
       required: ['problem', 'solution', 'scope'],
     },

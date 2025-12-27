@@ -1,4 +1,12 @@
 // Database row types
+export type SolutionCategory = 'bugfix' | 'feature' | 'refactor' | 'config' | 'pattern' | 'optimization';
+
+export interface CodeBlock {
+  language: string;
+  code: string;
+  description: string;
+}
+
 export interface SolutionRow {
   id: string;
   repo_id: string | null;
@@ -16,6 +24,14 @@ export interface SolutionRow {
   created_at: string;
   updated_at: string;
   last_used_at: string | null;
+  // v1.0.1 Enhanced metadata
+  category: SolutionCategory | null;
+  complexity: number | null;
+  prerequisites: string;
+  anti_patterns: string;
+  code_blocks: string;
+  related_solutions: string;
+  supersedes: string | null;
 }
 
 export interface FailureRow {

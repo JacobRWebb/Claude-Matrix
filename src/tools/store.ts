@@ -76,6 +76,7 @@ export async function matrixStore(input: StoreInput): Promise<StoreResult> {
   const relatedSolutions = JSON.stringify(input.relatedSolutions || []);
 
   if (input.supersedes) {
+    // Chaining allowed (A→B→C) to track solution evolution over time
     const superseded = db.query('SELECT id FROM solutions WHERE id = ?').get(input.supersedes);
     if (!superseded) {
       throw new Error(`Cannot supersede non-existent solution: ${input.supersedes}`);

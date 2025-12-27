@@ -54,7 +54,7 @@ export async function matrixRecall(input: RecallInput): Promise<RecallResult> {
 
   const queryEmbedding = await getEmbedding(input.query);
 
-  // Build superseded lookup
+  // Build superseded lookup (small table scan - most solutions don't supersede others)
   const supersededByMap = new Map<string, string>();
   const supersededRows = db.query(`SELECT supersedes, id FROM solutions WHERE supersedes IS NOT NULL`).all() as Array<{ supersedes: string; id: string }>;
   for (const row of supersededRows) {
@@ -77,7 +77,7 @@ export async function matrixRecall(input: RecallInput): Promise<RecallResult> {
     params.push(input.categoryFilter);
   }
   if (input.maxComplexity) {
-    query += ` AND (complexity IS NULL OR complexity <= ?)`;
+    query += ` AND complexity IS NOT NULL AND complexity <= ?`;
     params.push(input.maxComplexity);
   }
 

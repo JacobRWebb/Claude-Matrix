@@ -10,5 +10,6 @@
       "description": "Claude on Rails Tooling System - Persistent memory for Claude Code",
       "version": "1.0.6"
     }
-  ]
+  ],
+  "version": "1.0.6"
 }

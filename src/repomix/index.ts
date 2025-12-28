@@ -143,8 +143,8 @@ function getPackCache(db: Database, key: string): PackResult | null {
 function setPackCache(db: Database, key: string, target: string, query: string, stats: PackResult['stats'], content: string, ttl: number): void {
   try {
     db.run(
-      `INSERT OR REPLACE INTO repomix_cache (id, target, options, content, stats, created_at, expires_at) VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now', '+${ttl} hour'))`,
-      [key, target, query, content, JSON.stringify({ ...stats, target })]
+      `INSERT OR REPLACE INTO repomix_cache (id, target, options, content, stats, created_at, expires_at) VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now', ? || ' hours'))`,
+      [key, target, query, content, JSON.stringify({ ...stats, target }), `+${ttl}`]
     );
   } catch { /* ignore */ }
 }
@@ -164,7 +164,7 @@ function setIndexCache(db: Database, target: string, branch: string | undefined,
   try {
     const key = `index:${target}:${branch || 'default'}`;
     db.run(
-      `INSERT OR REPLACE INTO repomix_cache (id, target, options, content, stats, created_at, expires_at) VALUES (?, ?, 'index', ?, '{}', datetime('now'), datetime('now', '+24 hour'))`,
+      `INSERT OR REPLACE INTO repomix_cache (id, target, options, content, stats, created_at, expires_at) VALUES (?, ?, 'index', ?, '{}', datetime('now'), datetime('now', '+24 hours'))`,
       [key, target, JSON.stringify(files)]
     );
   } catch { /* ignore */ }
@@ -184,13 +184,30 @@ interface GitHubTree {
   size?: number;
 }
 
+interface GitHubTreeResponse {
+  tree: GitHubTree[];
+  truncated: boolean;
+}
+
 async function fetchGitHubTree(owner: string, repo: string, branch?: string): Promise<FileInfo[]> {
   const ref = branch || 'HEAD';
-  const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/${ref}?recursive=1`, {
-    headers: { 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'Matrix-Repomix/1.0' },
-  });
+  const headers: Record<string, string> = {
+    'Accept': 'application/vnd.github.v3+json',
+    'User-Agent': 'Matrix-Repomix/1.0',
+  };
+  // Support GITHUB_TOKEN for higher rate limits (5000/hour vs 60/hour)
+  if (process.env.GITHUB_TOKEN) {
+    headers['Authorization'] = `Bearer ${process.env.GITHUB_TOKEN}`;
+  }
+
+  const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/${ref}?recursive=1`, { headers });
   if (!res.ok) throw new Error(`GitHub API: ${res.status} ${res.statusText}`);
-  const data = await res.json() as { tree: GitHubTree[]; truncated: boolean };
+  const data = await res.json() as GitHubTreeResponse;
+
+  // Warn if tree is truncated (very large repos may exceed 100k entries)
+  if (data.truncated) {
+    console.warn(`Warning: GitHub tree for ${owner}/${repo} is truncated. Some files may be missing.`);
+  }
 
   const files: FileInfo[] = [];
   for (const item of data.tree) {

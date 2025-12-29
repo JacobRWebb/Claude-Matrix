@@ -45,7 +45,7 @@ export async function handleToolCall(name: string, args: Record<string, unknown>
       return JSON.stringify({
         ...result,
         relatedFailures: relatedFailures.length > 0 ? relatedFailures : undefined,
-      }, null, 2);
+      });
     }
 
     case 'matrix_store': {
@@ -56,7 +56,7 @@ export async function handleToolCall(name: string, args: Record<string, unknown>
         tags: args['tags'] as string[] | undefined,
         filesAffected: args['filesAffected'] as string[] | undefined,
       });
-      return JSON.stringify(result, null, 2);
+      return JSON.stringify(result);
     }
 
     case 'matrix_reward': {
@@ -65,7 +65,7 @@ export async function handleToolCall(name: string, args: Record<string, unknown>
         outcome: args['outcome'] as 'success' | 'partial' | 'failure',
         notes: args['notes'] as string | undefined,
       });
-      return JSON.stringify(result, null, 2);
+      return JSON.stringify(result);
     }
 
     case 'matrix_failure': {
@@ -78,12 +78,12 @@ export async function handleToolCall(name: string, args: Record<string, unknown>
         prevention: args['prevention'] as string | undefined,
         filesInvolved: args['filesInvolved'] as string[] | undefined,
       });
-      return JSON.stringify(result, null, 2);
+      return JSON.stringify(result);
     }
 
     case 'matrix_status': {
       const result = matrixStatus();
-      return JSON.stringify(result, null, 2);
+      return JSON.stringify(result);
     }
 
     // Warning tools
@@ -93,7 +93,7 @@ export async function handleToolCall(name: string, args: Record<string, unknown>
         target: args['target'] as string,
         ecosystem: args['ecosystem'] as PackageEcosystem | undefined,
       });
-      return JSON.stringify(result, null, 2);
+      return JSON.stringify(result);
     }
 
     case 'matrix_warn_add': {
@@ -105,7 +105,7 @@ export async function handleToolCall(name: string, args: Record<string, unknown>
         ecosystem: args['ecosystem'] as PackageEcosystem | undefined,
         repoSpecific: args['repoSpecific'] as boolean | undefined,
       });
-      return JSON.stringify(result, null, 2);
+      return JSON.stringify(result);
     }
 
     case 'matrix_warn_remove': {
@@ -115,7 +115,7 @@ export async function handleToolCall(name: string, args: Record<string, unknown>
         target: args['target'] as string | undefined,
         ecosystem: args['ecosystem'] as PackageEcosystem | undefined,
       });
-      return JSON.stringify(result, null, 2);
+      return JSON.stringify(result);
     }
 
     case 'matrix_warn_list': {
@@ -123,7 +123,7 @@ export async function handleToolCall(name: string, args: Record<string, unknown>
         type: args['type'] as WarningType | undefined,
         repoOnly: args['repoOnly'] as boolean | undefined,
       });
-      return JSON.stringify(result, null, 2);
+      return JSON.stringify(result);
     }
 
     // Prompt Agent
@@ -133,7 +133,7 @@ export async function handleToolCall(name: string, args: Record<string, unknown>
         mode: args['mode'] as PromptInput['mode'],
         skipClarification: args['skipClarification'] as boolean | undefined,
       });
-      return JSON.stringify(result, null, 2);
+      return JSON.stringify(result);
     }
 
     // Code Index Tools
@@ -143,14 +143,14 @@ export async function handleToolCall(name: string, args: Record<string, unknown>
         kind: args['kind'] as SymbolKind | undefined,
         file: args['file'] as string | undefined,
       });
-      return JSON.stringify(result, null, 2);
+      return JSON.stringify(result);
     }
 
     case 'matrix_list_exports': {
       const result = matrixListExports({
         path: args['path'] as string | undefined,
       });
-      return JSON.stringify(result, null, 2);
+      return JSON.stringify(result);
     }
 
     case 'matrix_search_symbols': {
@@ -158,26 +158,26 @@ export async function handleToolCall(name: string, args: Record<string, unknown>
         query: args['query'] as string,
         limit: args['limit'] as number | undefined,
       });
-      return JSON.stringify(result, null, 2);
+      return JSON.stringify(result);
     }
 
     case 'matrix_get_imports': {
       const result = matrixGetImports({
         file: args['file'] as string,
       });
-      return JSON.stringify(result, null, 2);
+      return JSON.stringify(result);
     }
 
     case 'matrix_index_status': {
       const result = matrixIndexStatus();
-      return JSON.stringify(result, null, 2);
+      return JSON.stringify(result);
     }
 
     case 'matrix_reindex': {
       const result = await matrixReindex({
         full: args['full'] as boolean | undefined,
       });
-      return JSON.stringify(result, null, 2);
+      return JSON.stringify(result);
     }
 
     // Repomix Integration

@@ -4,11 +4,12 @@ export const TOOLS: Tool[] = [
   {
     name: 'matrix_recall',
     description: 'Search for relevant solutions from past experience. Use before implementing non-trivial solutions.',
+    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {
         query: { type: 'string', description: 'What problem are you trying to solve?' },
-        limit: { type: 'number', description: 'Maximum number of results (default: 5)' },
+        limit: { type: 'number', description: 'Max results (default: 5)' },
         minScore: { type: 'number', description: 'Minimum similarity score 0-1 (default: 0.3)' },
         scopeFilter: { type: 'string', enum: ['all', 'repo', 'stack', 'global'], description: 'Filter by solution scope (default: all)' },
         categoryFilter: { type: 'string', enum: ['bugfix', 'feature', 'refactor', 'config', 'pattern', 'optimization'], description: 'Filter by category' },
@@ -20,6 +21,7 @@ export const TOOLS: Tool[] = [
   {
     name: 'matrix_store',
     description: 'Store a successful solution for future recall. Use after solving a reusable problem.',
+    annotations: { idempotentHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -42,6 +44,7 @@ export const TOOLS: Tool[] = [
   {
     name: 'matrix_reward',
     description: 'Provide feedback on a recalled solution. Improves future recommendations.',
+    annotations: { idempotentHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -61,10 +64,12 @@ export const TOOLS: Tool[] = [
       },
       required: ['solutionId', 'outcome'],
     },
+    _meta: { delegable: true },
   },
   {
     name: 'matrix_failure',
     description: 'Record an error and its fix for future prevention.',
+    annotations: { idempotentHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -74,7 +79,6 @@ export const TOOLS: Tool[] = [
         },
         errorMessage: {
           type: 'string',
-          description: 'The error message',
         },
         stackTrace: {
           type: 'string',
@@ -103,15 +107,18 @@ export const TOOLS: Tool[] = [
   {
     name: 'matrix_status',
     description: 'Get Matrix memory statistics.',
+    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {},
     },
+    _meta: { delegable: true },
   },
   // Warning tools for Hooks integration
   {
     name: 'matrix_warn_check',
     description: 'Check if a file or package has warnings (personal grudges). Use before editing cursed files or installing problematic packages.',
+    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -132,10 +139,12 @@ export const TOOLS: Tool[] = [
       },
       required: ['type', 'target'],
     },
+    _meta: { delegable: true },
   },
   {
     name: 'matrix_warn_add',
     description: 'Add a warning for a file or package. Use to mark problematic dependencies or cursed files.',
+    annotations: { idempotentHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -169,10 +178,12 @@ export const TOOLS: Tool[] = [
       },
       required: ['type', 'target', 'reason'],
     },
+    _meta: { delegable: true },
   },
   {
     name: 'matrix_warn_remove',
     description: 'Remove a warning by ID or by type+target.',
+    annotations: { destructiveHint: true, idempotentHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -196,10 +207,12 @@ export const TOOLS: Tool[] = [
         },
       },
     },
+    _meta: { delegable: true },
   },
   {
     name: 'matrix_warn_list',
     description: 'List all warnings.',
+    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -214,11 +227,13 @@ export const TOOLS: Tool[] = [
         },
       },
     },
+    _meta: { delegable: true },
   },
   // Prompt Agent
   {
     name: 'matrix_prompt',
     description: 'Analyze and optimize a prompt before execution. Detects ambiguity, infers context, and either returns an optimized prompt or asks clarification questions. Use for complex or ambiguous user requests.',
+    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -242,7 +257,8 @@ export const TOOLS: Tool[] = [
   // Code Index Tools
   {
     name: 'matrix_find_definition',
-    description: 'Find where a symbol (function, class, type, variable) is defined in the codebase. Use this to navigate to symbol definitions.',
+    description: 'Find where a symbol (function, class, type, variable) is defined in the codebase.',
+    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -265,7 +281,8 @@ export const TOOLS: Tool[] = [
   },
   {
     name: 'matrix_list_exports',
-    description: 'List all exported symbols from a file or directory. Use to understand what a module exposes.',
+    description: 'List exported symbols from a file or directory.',
+    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -279,6 +296,7 @@ export const TOOLS: Tool[] = [
   {
     name: 'matrix_search_symbols',
     description: 'Search for symbols by partial name match. Use when you know part of a symbol name.',
+    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -288,7 +306,7 @@ export const TOOLS: Tool[] = [
         },
         limit: {
           type: 'number',
-          description: 'Maximum results to return (default: 20)',
+          description: 'Max results (default: 20)',
         },
       },
       required: ['query'],
@@ -296,7 +314,8 @@ export const TOOLS: Tool[] = [
   },
   {
     name: 'matrix_get_imports',
-    description: 'Get all imports in a specific file. Use to understand file dependencies.',
+    description: 'Get all imports in a file.',
+    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -310,15 +329,18 @@ export const TOOLS: Tool[] = [
   },
   {
     name: 'matrix_index_status',
-    description: 'Get the current status of the code index for this repository.',
+    description: 'Get code index status for this repository.',
+    annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
       properties: {},
     },
+    _meta: { delegable: true },
   },
   {
     name: 'matrix_reindex',
     description: 'Manually trigger repository reindexing. Use to refresh the code index after changes.',
+    annotations: { idempotentHint: true },
     inputSchema: {
       type: 'object',
       properties: {
@@ -328,11 +350,13 @@ export const TOOLS: Tool[] = [
         },
       },
     },
+    _meta: { delegable: true },
   },
   // Repomix Integration
   {
     name: 'matrix_repomix',
     description: 'Pack external repositories for context. Two-phase flow: Phase 1 (no files) returns suggested files based on query. Phase 2 (with confirmedFiles) packs those files. Minimizes token consumption by letting you confirm before packing.',
+    annotations: { readOnlyHint: true, openWorldHint: true },
     inputSchema: {
       type: 'object',
       properties: {

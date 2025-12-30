@@ -1,6 +1,67 @@
 # Claude Matrix Roadmap
 
-> **Vision**: "Claude on Rails" — Zero-friction AI development with persistent memory, parallel agents, and intelligent prompting.
+> **Vision**: "Claude on Rails" — Increase the chance and speed for Claude Code to deliver the First Satisfying Answer
+
+---
+
+## In Progress
+
+### v1.1.0 — Extended Language Support
+
+Currently supported: **TypeScript, JavaScript, Python, Go, Rust** (5 languages)
+
+#### Phase 1: High-Priority Languages
+| Language | Tree-sitter Grammar | Status |
+|----------|---------------------|--------|
+| C# | [tree-sitter-c-sharp](https://github.com/tree-sitter/tree-sitter-c-sharp) | 🔜 Next |
+| Java | [tree-sitter-java](https://github.com/tree-sitter/tree-sitter-java) | 🔜 Next |
+| Kotlin | [tree-sitter-kotlin](https://github.com/fwcd/tree-sitter-kotlin) | 🔜 Next |
+| Swift | [tree-sitter-swift](https://github.com/alex-pinkus/tree-sitter-swift) | 🔜 Next |
+| Ruby | [tree-sitter-ruby](https://github.com/tree-sitter/tree-sitter-ruby) | Planned |
+| PHP | [tree-sitter-php](https://github.com/tree-sitter/tree-sitter-php) | Planned |
+| Elixir | [tree-sitter-elixir](https://github.com/elixir-lang/tree-sitter-elixir) | Planned |
+| Zig | [tree-sitter-zig](https://github.com/tree-sitter-grammars/tree-sitter-zig) | Planned |
+
+> **Note**: Grammars sourced from [tree-sitter wiki](https://github.com/tree-sitter/tree-sitter/wiki/List-of-parsers) and [tree-sitter-grammars](https://github.com/tree-sitter-grammars) org.
+
+---
+
+## Future Ideas
+
+### Agent Orchestration
+
+Spawn subagents in git worktrees for parallel work:
+- Isolated environments for different approaches
+- Unified results back to main
+- Automatic conflict detection
+
+### Personal Skills Factory
+
+Learn user patterns and generate personalized Claude Skills:
+- Detect repeated workflows
+- Suggest skill creation
+- Export as reusable .md files
+
+### Solution Chains
+
+Link related solutions into workflows:
+- "After X, usually do Y"
+- Automatic prerequisite injection
+- Multi-step solution recall
+
+### Streaming Repomix
+
+For large repos:
+- Progressive file loading
+- Token budget enforcement
+- Chunked output
+
+### Memory Sync
+
+Share solutions across machines:
+- Import memory bundles
+- Selective sync (repo-specific vs global)
+- Conflict resolution
 
 ---
 
@@ -68,94 +129,6 @@
 - [x] 7 Claude Code hooks
 - [x] Context7 integration
 - [x] Package auditing (CVEs, deprecation)
-
----
-
-## In Progress
-
-### v1.1.0 — Extended Language Support
-
-Currently supported: **TypeScript, JavaScript, Python, Go, Rust** (5 languages)
-
-#### Phase 1: High-Priority Languages
-| Language | Tree-sitter Grammar | Status |
-|----------|---------------------|--------|
-| C# | [tree-sitter-c-sharp](https://github.com/tree-sitter/tree-sitter-c-sharp) | 🔜 Next |
-| Java | [tree-sitter-java](https://github.com/tree-sitter/tree-sitter-java) | 🔜 Next |
-| Kotlin | [tree-sitter-kotlin](https://github.com/fwcd/tree-sitter-kotlin) | 🔜 Next |
-| Swift | [tree-sitter-swift](https://github.com/alex-pinkus/tree-sitter-swift) | 🔜 Next |
-| Dart | [tree-sitter-dart](https://github.com/UserNobody14/tree-sitter-dart) | 🔜 Next |
-
-#### Phase 2: Popular Languages
-| Language | Tree-sitter Grammar | Status |
-|----------|---------------------|--------|
-| Ruby | [tree-sitter-ruby](https://github.com/tree-sitter/tree-sitter-ruby) | Planned |
-| PHP | [tree-sitter-php](https://github.com/tree-sitter/tree-sitter-php) | Planned |
-| Elixir | [tree-sitter-elixir](https://github.com/elixir-lang/tree-sitter-elixir) | Planned |
-| Scala | [tree-sitter-scala](https://github.com/tree-sitter/tree-sitter-scala) | Planned |
-| Clojure | [tree-sitter-clojure](https://github.com/sogaiu/tree-sitter-clojure) | Planned |
-
-#### Phase 3: Systems & Functional
-| Language | Tree-sitter Grammar | Status |
-|----------|---------------------|--------|
-| Zig | [tree-sitter-zig](https://github.com/tree-sitter-grammars/tree-sitter-zig) | Planned |
-| Nim | [tree-sitter-nim](https://github.com/alaviss/tree-sitter-nim) | Planned |
-| D | [tree-sitter-d](https://github.com/gdamore/tree-sitter-d) | Planned |
-| Crystal | [tree-sitter-crystal](https://github.com/keidax/tree-sitter-crystal) | Planned |
-| V | [v-analyzer](https://github.com/vlang/v-analyzer) | Planned |
-| Gleam | [tree-sitter-gleam](https://github.com/gleam-lang/tree-sitter-gleam) | Planned |
-
-#### Phase 4: Academic & Niche
-| Language | Tree-sitter Grammar | Status |
-|----------|---------------------|--------|
-| Haskell | [tree-sitter-haskell](https://github.com/tree-sitter/tree-sitter-haskell) | Planned |
-| OCaml | [tree-sitter-ocaml](https://github.com/tree-sitter/tree-sitter-ocaml) | Planned |
-| Erlang | [tree-sitter-erlang](https://github.com/WhatsApp/tree-sitter-erlang) | Planned |
-| Julia | [tree-sitter-julia](https://github.com/tree-sitter/tree-sitter-julia) | Planned |
-| PureScript | [tree-sitter-purescript](https://github.com/postsolar/tree-sitter-purescript) | Planned |
-| Perl | [tree-sitter-perl](https://github.com/tree-sitter-perl/tree-sitter-perl) | Planned |
-| Objective-C | [tree-sitter-objc](https://github.com/tree-sitter-grammars/tree-sitter-objc) | Planned |
-
-> **Note**: Grammars sourced from [tree-sitter wiki](https://github.com/tree-sitter/tree-sitter/wiki/List-of-parsers) and [tree-sitter-grammars](https://github.com/tree-sitter-grammars) org.
-
----
-
-## Future Ideas
-
-### Agent Orchestration
-
-Spawn subagents in git worktrees for parallel work:
-- Isolated environments for different approaches
-- Unified results back to main
-- Automatic conflict detection
-
-### Personal Skills Factory
-
-Learn user patterns and generate personalized Claude Skills:
-- Detect repeated workflows
-- Suggest skill creation
-- Export as reusable .md files
-
-### Solution Chains
-
-Link related solutions into workflows:
-- "After X, usually do Y"
-- Automatic prerequisite injection
-- Multi-step solution recall
-
-### Streaming Repomix
-
-For large repos:
-- Progressive file loading
-- Token budget enforcement
-- Chunked output
-
-### Memory Sync
-
-Share solutions across machines:
-- Export/import memory bundles
-- Selective sync (repo-specific vs global)
-- Conflict resolution
 
 ---
 

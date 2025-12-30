@@ -45,51 +45,184 @@ function generateRepoId(root: string): string {
 }
 
 /**
- * Check if directory is an indexable project
+ * Language detection result
  */
-function isIndexableProject(root: string): boolean {
-  // TypeScript/JavaScript
+interface LanguageDetection {
+  language: string | null;
+  supported: boolean;
+  markers: string[];
+}
+
+/**
+ * Detect project language and whether it's supported for indexing
+ */
+function detectProjectLanguage(root: string): LanguageDetection {
+  // Supported languages
   if (existsSync(join(root, 'package.json')) ||
       existsSync(join(root, 'tsconfig.json')) ||
       existsSync(join(root, 'jsconfig.json'))) {
-    return true;
+    return { language: 'TypeScript/JavaScript', supported: true, markers: ['package.json', 'tsconfig.json'] };
   }
-  // Python
   if (existsSync(join(root, 'pyproject.toml')) ||
       existsSync(join(root, 'setup.py')) ||
       existsSync(join(root, 'requirements.txt'))) {
-    return true;
+    return { language: 'Python', supported: true, markers: ['pyproject.toml', 'setup.py', 'requirements.txt'] };
   }
-  // Go
   if (existsSync(join(root, 'go.mod'))) {
-    return true;
+    return { language: 'Go', supported: true, markers: ['go.mod'] };
   }
-  // Rust
   if (existsSync(join(root, 'Cargo.toml'))) {
-    return true;
+    return { language: 'Rust', supported: true, markers: ['Cargo.toml'] };
   }
-  return false;
+
+  // Unsupported languages (detected but not yet supported)
+  if (existsSync(join(root, '*.csproj')) ||
+      existsSync(join(root, '*.sln')) ||
+      existsSync(join(root, 'global.json'))) {
+    return { language: 'C#', supported: false, markers: ['.csproj', '.sln'] };
+  }
+  if (existsSync(join(root, 'pom.xml')) ||
+      existsSync(join(root, 'build.gradle')) ||
+      existsSync(join(root, 'build.gradle.kts'))) {
+    return { language: 'Java/Kotlin', supported: false, markers: ['pom.xml', 'build.gradle'] };
+  }
+  if (existsSync(join(root, 'Gemfile'))) {
+    return { language: 'Ruby', supported: false, markers: ['Gemfile'] };
+  }
+  if (existsSync(join(root, 'composer.json'))) {
+    return { language: 'PHP', supported: false, markers: ['composer.json'] };
+  }
+  if (existsSync(join(root, 'Package.swift'))) {
+    return { language: 'Swift', supported: false, markers: ['Package.swift'] };
+  }
+  if (existsSync(join(root, 'CMakeLists.txt')) ||
+      existsSync(join(root, 'Makefile'))) {
+    return { language: 'C/C++', supported: false, markers: ['CMakeLists.txt', 'Makefile'] };
+  }
+  if (existsSync(join(root, 'mix.exs'))) {
+    return { language: 'Elixir', supported: false, markers: ['mix.exs'] };
+  }
+  if (existsSync(join(root, 'deno.json')) ||
+      existsSync(join(root, 'deno.jsonc'))) {
+    return { language: 'Deno', supported: false, markers: ['deno.json'] };
+  }
+  if (existsSync(join(root, 'pubspec.yaml'))) {
+    return { language: 'Dart/Flutter', supported: false, markers: ['pubspec.yaml'] };
+  }
+  if (existsSync(join(root, 'build.zig'))) {
+    return { language: 'Zig', supported: false, markers: ['build.zig'] };
+  }
+  if (existsSync(join(root, 'Makefile.PL')) ||
+      existsSync(join(root, 'cpanfile'))) {
+    return { language: 'Perl', supported: false, markers: ['Makefile.PL', 'cpanfile'] };
+  }
+  if (existsSync(join(root, 'Project.toml'))) {
+    return { language: 'Julia', supported: false, markers: ['Project.toml'] };
+  }
+  if (existsSync(join(root, 'stack.yaml')) ||
+      existsSync(join(root, 'cabal.project'))) {
+    return { language: 'Haskell', supported: false, markers: ['stack.yaml', 'cabal.project'] };
+  }
+  if (existsSync(join(root, 'rebar.config'))) {
+    return { language: 'Erlang', supported: false, markers: ['rebar.config'] };
+  }
+  if (existsSync(join(root, 'project.clj')) ||
+      existsSync(join(root, 'deps.edn'))) {
+    return { language: 'Clojure', supported: false, markers: ['project.clj', 'deps.edn'] };
+  }
+  if (existsSync(join(root, 'build.sbt'))) {
+    return { language: 'Scala', supported: false, markers: ['build.sbt'] };
+  }
+  if (existsSync(join(root, 'dub.json')) ||
+      existsSync(join(root, 'dub.sdl'))) {
+    return { language: 'D', supported: false, markers: ['dub.json'] };
+  }
+  if (existsSync(join(root, 'spago.dhall')) ||
+      existsSync(join(root, 'spago.yaml'))) {
+    return { language: 'PureScript', supported: false, markers: ['spago.dhall'] };
+  }
+  if (existsSync(join(root, 'shard.yml'))) {
+    return { language: 'Crystal', supported: false, markers: ['shard.yml'] };
+  }
+  if (existsSync(join(root, 'Package.resolved')) ||
+      existsSync(join(root, '*.xcodeproj'))) {
+    return { language: 'Swift/Objective-C', supported: false, markers: ['Package.resolved', '.xcodeproj'] };
+  }
+  if (existsSync(join(root, 'nimble.nimble')) ||
+      existsSync(join(root, '*.nimble'))) {
+    return { language: 'Nim', supported: false, markers: ['.nimble'] };
+  }
+  if (existsSync(join(root, 'v.mod'))) {
+    return { language: 'V', supported: false, markers: ['v.mod'] };
+  }
+  if (existsSync(join(root, 'gleam.toml'))) {
+    return { language: 'Gleam', supported: false, markers: ['gleam.toml'] };
+  }
+  if (existsSync(join(root, 'esy.json'))) {
+    return { language: 'OCaml/Reason', supported: false, markers: ['esy.json'] };
+  }
+
+  return { language: null, supported: false, markers: [] };
 }
+
+/**
+ * Generate appropriate error message based on language detection
+ */
+function getNotIndexableMessage(root: string): string {
+  const detection = detectProjectLanguage(root);
+
+  if (detection.language && !detection.supported) {
+    return `Detected ${detection.language} project - indexing coming soon! Currently supported: TypeScript/JavaScript, Python, Go, Rust`;
+  }
+
+  if (!detection.language) {
+    return 'No recognized project found. Supported: TypeScript/JavaScript, Python, Go, Rust';
+  }
+
+  return 'Not in an indexable repository';
+}
+
+/**
+ * Check if directory is an indexable project
+ */
+function isIndexableProject(root: string): boolean {
+  const detection = detectProjectLanguage(root);
+  return detection.supported;
+}
+
+/**
+ * Result from getRepoInfo - either success with repo info or failure with message
+ */
+type RepoInfoResult =
+  | { success: true; root: string; id: string }
+  | { success: false; message: string };
 
 /**
  * Get repo info from a path (defaults to cwd)
  */
-function getRepoInfo(targetPath?: string): { root: string; id: string } | null {
+function getRepoInfo(targetPath?: string): RepoInfoResult {
   // Resolve relative paths to absolute
   const basePath = targetPath ? resolve(targetPath) : process.cwd();
 
   // Verify path exists
   if (!existsSync(basePath)) {
-    return null;
+    return {
+      success: false,
+      message: `Path does not exist: ${basePath}`,
+    };
   }
 
   const root = findGitRoot(basePath) || basePath;
 
   if (!isIndexableProject(root)) {
-    return null;
+    return {
+      success: false,
+      message: getNotIndexableMessage(root),
+    };
   }
 
   return {
+    success: true,
     root,
     id: generateRepoId(root),
   };
@@ -153,10 +286,10 @@ export interface SearchSymbolsResult {
  */
 export function matrixFindDefinition(input: FindDefinitionInput): FindDefinitionResult {
   const repo = getRepoInfo(input.repoPath);
-  if (!repo) {
+  if (!repo.success) {
     return {
       found: false,
-      message: 'Not in an indexed TypeScript/JavaScript repository',
+      message: repo.message,
     };
   }
 
@@ -185,10 +318,10 @@ export function matrixFindDefinition(input: FindDefinitionInput): FindDefinition
  */
 export function matrixListExports(input: ListExportsInput): ListExportsResult {
   const repo = getRepoInfo(input.repoPath);
-  if (!repo) {
+  if (!repo.success) {
     return {
       found: false,
-      message: 'Not in an indexed TypeScript/JavaScript repository',
+      message: repo.message,
     };
   }
 
@@ -214,10 +347,10 @@ export function matrixListExports(input: ListExportsInput): ListExportsResult {
  */
 export function matrixIndexStatus(input: IndexStatusInput = {}): IndexStatusResult {
   const repo = getRepoInfo(input.repoPath);
-  if (!repo) {
+  if (!repo.success) {
     return {
       indexed: false,
-      message: 'Not in an indexed TypeScript/JavaScript repository',
+      message: repo.message,
     };
   }
 
@@ -242,10 +375,10 @@ export function matrixIndexStatus(input: IndexStatusInput = {}): IndexStatusResu
  */
 export function matrixSearchSymbols(input: SearchSymbolsInput): SearchSymbolsResult {
   const repo = getRepoInfo(input.repoPath);
-  if (!repo) {
+  if (!repo.success) {
     return {
       found: false,
-      message: 'Not in an indexed TypeScript/JavaScript repository',
+      message: repo.message,
     };
   }
 
@@ -269,10 +402,10 @@ export function matrixSearchSymbols(input: SearchSymbolsInput): SearchSymbolsRes
  */
 export function matrixGetImports(input: GetImportsInput) {
   const repo = getRepoInfo(input.repoPath);
-  if (!repo) {
+  if (!repo.success) {
     return {
       found: false,
-      message: 'Not in an indexed TypeScript/JavaScript repository',
+      message: repo.message,
     };
   }
 
@@ -313,10 +446,10 @@ export interface ReindexResult {
  */
 export async function matrixReindex(input: ReindexInput = {}): Promise<ReindexResult> {
   const repo = getRepoInfo(input.repoPath);
-  if (!repo) {
+  if (!repo.success) {
     return {
       success: false,
-      message: 'Not in a TypeScript/JavaScript repository',
+      message: repo.message,
     };
   }
 

@@ -4,7 +4,7 @@ import { homedir } from 'os';
 import { SCHEMA_SQL } from './schema.js';
 
 // Schema version - increment when schema changes
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 // Migration definitions - each migration upgrades from (version - 1) to version
 const migrations: Record<number, string> = {
@@ -76,6 +76,13 @@ const migrations: Record<number, string> = {
     CREATE INDEX IF NOT EXISTS idx_solutions_complexity ON solutions(complexity);
     CREATE INDEX IF NOT EXISTS idx_solutions_supersedes ON solutions(supersedes);
   `,
+
+  // v3 -> v4: Skill Factory columns
+  4: `
+    ALTER TABLE solutions ADD COLUMN promoted_to_skill TEXT;
+    ALTER TABLE solutions ADD COLUMN promoted_at TEXT;
+    CREATE INDEX IF NOT EXISTS idx_solutions_promoted ON solutions(promoted_to_skill);
+  `,
 };
 
 function getDbPath(): string {
@@ -111,20 +118,34 @@ function getCurrentVersion(db: Database): number {
           SELECT name FROM sqlite_master WHERE type='table' AND name IN ('warnings', 'dependency_installs', 'session_summaries', 'api_cache')
         `).all() as { name: string }[];
 
-        const hasAllV2Tables = v2Tables.every(t => existingTables.some(e => e.name === t));
+        let hasAllV2Tables = v2Tables.every(t => existingTables.some(e => e.name === t));
 
-        // Check for v3 columns
+        // Validate table integrity - verify tables are actually accessible
+        if (hasAllV2Tables) {
+          try {
+            // Quick query to verify v2 tables are not corrupted
+            db.query('SELECT 1 FROM warnings LIMIT 1').get();
+          } catch {
+            // Tables exist but may be corrupted, treat as v1
+            hasAllV2Tables = false;
+          }
+        }
+
+        // Check for v3 and v4 columns
         let hasV3Columns = false;
+        let hasV4Columns = false;
         if (hasAllV2Tables) {
           try {
             const cols = db.query(`PRAGMA table_info(solutions)`).all() as { name: string }[];
             hasV3Columns = cols.some(c => c.name === 'category');
+            hasV4Columns = cols.some(c => c.name === 'promoted_to_skill');
           } catch {
             hasV3Columns = false;
+            hasV4Columns = false;
           }
         }
 
-        const initialVersion = hasV3Columns ? 3 : (hasAllV2Tables ? 2 : 1);
+        const initialVersion = hasV4Columns ? 4 : (hasV3Columns ? 3 : (hasAllV2Tables ? 2 : 1));
         db.exec(`INSERT INTO schema_version (version) VALUES (${initialVersion})`);
         return initialVersion;
       } else {

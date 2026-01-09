@@ -12,7 +12,7 @@
  *   - Context7: resolve-library-id, query-docs
  *
  * Requires permission:
- *   - matrix_store, matrix_warn_add, matrix_warn_remove, matrix_failure
+ *   - matrix_store, matrix_warn, matrix_failure, matrix_link_skill
  *
  * Exit codes:
  *   0 = Success (JSON output processed)
@@ -43,18 +43,23 @@ const CORE_READ_TOOLS = new Set(['Read', 'Glob', 'Grep']);
 const WEB_TOOLS = new Set(['WebFetch', 'WebSearch']);
 
 const MATRIX_READ_TOOLS = new Set([
+  // Core memory (read-only)
   'mcp__plugin_matrix_matrix__matrix_recall',
   'mcp__plugin_matrix_matrix__matrix_status',
-  'mcp__plugin_matrix_matrix__matrix_warn_check',
-  'mcp__plugin_matrix_matrix__matrix_warn_list',
+  'mcp__plugin_matrix_matrix__matrix_reward',
+  // Code index (read-only)
   'mcp__plugin_matrix_matrix__matrix_find_definition',
+  'mcp__plugin_matrix_matrix__matrix_find_callers',
   'mcp__plugin_matrix_matrix__matrix_search_symbols',
   'mcp__plugin_matrix_matrix__matrix_list_exports',
   'mcp__plugin_matrix_matrix__matrix_get_imports',
   'mcp__plugin_matrix_matrix__matrix_index_status',
   'mcp__plugin_matrix_matrix__matrix_reindex',
+  // Utility (read-only)
   'mcp__plugin_matrix_matrix__matrix_repomix',
   'mcp__plugin_matrix_matrix__matrix_prompt',
+  'mcp__plugin_matrix_matrix__matrix_doctor',
+  'mcp__plugin_matrix_matrix__matrix_skill_candidates',
 ]);
 
 const CONTEXT7_TOOLS = new Set([

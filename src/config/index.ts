@@ -101,6 +101,32 @@ export interface PromptAnalysisConfig {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// User-Configurable Rules (v2.0)
+// ═══════════════════════════════════════════════════════════════
+export type RuleEvent = 'bash' | 'edit' | 'read' | 'prompt' | 'write';
+export type RuleAction = 'block' | 'warn' | 'allow';
+
+// ═══════════════════════════════════════════════════════════════
+// Hook Verbosity (v2.0)
+// ═══════════════════════════════════════════════════════════════
+export type VerbosityLevel = 'full' | 'compact' | 'minimal';
+
+export interface UserRule {
+  name: string;
+  enabled: boolean;
+  event: RuleEvent;
+  pattern: string;         // Regex pattern
+  action: RuleAction;
+  message: string;
+  priority?: number;       // Higher = evaluated first (default: 0)
+}
+
+export interface UserRulesConfig {
+  enabled: boolean;
+  rules: UserRule[];
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Combined Hooks Config
 // ═══════════════════════════════════════════════════════════════
 export interface HooksConfig {
@@ -121,6 +147,10 @@ export interface HooksConfig {
   packageAuditor: PackageAuditorConfig;
   cursedFiles: CursedFilesConfig;
   promptAnalysis: PromptAnalysisConfig;
+  // v2.0 User Rules
+  userRules: UserRulesConfig;
+  // v2.0 Hook Verbosity
+  verbosity: VerbosityLevel;
 }
 
 export interface MatrixConfig {
@@ -215,7 +245,7 @@ export const DEFAULT_CONFIG: MatrixConfig = {
         matrixRead: true,    // matrix_recall, status, find_definition, etc.
         context7: true,      // resolve-library-id, query-docs
       },
-      neverAutoApprove: ['matrix_store', 'matrix_warn_add', 'matrix_warn_remove', 'matrix_failure'],
+      neverAutoApprove: ['matrix_store', 'matrix_warn', 'matrix_failure', 'matrix_link_skill'],
       additionalAutoApprove: [],
     },
 
@@ -286,6 +316,39 @@ export const DEFAULT_CONFIG: MatrixConfig = {
         minScore: 0.35,
       },
     },
+
+    // ─── User Rules (v2.0) ───
+    userRules: {
+      enabled: true,
+      rules: [
+        // Example rules (commented out by default)
+        // {
+        //   name: 'block-rm-rf',
+        //   enabled: true,
+        //   event: 'bash',
+        //   pattern: 'rm\\s+-rf\\s+/',
+        //   action: 'block',
+        //   message: 'Dangerous rm -rf command blocked',
+        //   priority: 100,
+        // },
+        // {
+        //   name: 'warn-console-log',
+        //   enabled: true,
+        //   event: 'edit',
+        //   pattern: 'console\\.log',
+        //   action: 'warn',
+        //   message: 'Consider removing console.log before committing',
+        //   priority: 0,
+        // },
+      ],
+    },
+
+    // ─── Hook Verbosity (v2.0) ───
+    // Controls token overhead of hook outputs
+    // 'full': Verbose multi-line format
+    // 'compact': Single-line formats (~80% token reduction) - DEFAULT
+    // 'minimal': Near-silent, only critical blockers shown
+    verbosity: 'compact' as VerbosityLevel,
   },
   indexing: {
     enabled: true,

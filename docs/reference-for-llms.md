@@ -27,7 +27,7 @@ Claude-Matrix/
 │   ├── db/
 │   │   ├── client.ts               # SQLite connection (bun:sqlite)
 │   │   ├── schema.ts               # Full database schema
-│   │   └── migrate.ts              # Schema migrations
+│   │   └── migrate.ts              # Schema migrations (v4 for v2.0)
 │   ├── embeddings/
 │   │   ├── local.ts                # transformers.js embeddings
 │   │   └── utils.ts                # cosine similarity
@@ -39,14 +39,17 @@ Claude-Matrix/
 │   │   ├── reward.ts               # matrix_reward
 │   │   ├── failure.ts              # matrix_failure
 │   │   ├── status.ts               # matrix_status
-│   │   ├── warn.ts                 # matrix_warn_*
+│   │   ├── warn.ts                 # matrix_warn (v2.0: consolidated)
 │   │   ├── prompt.ts               # matrix_prompt
 │   │   ├── doctor.ts               # matrix_doctor
-│   │   └── index-tools.ts          # Code index tools
+│   │   ├── index-tools.ts          # Code index tools + find_callers
+│   │   └── skill-factory.ts        # matrix_skill_candidates, matrix_link_skill (v2.0)
 │   ├── server/
 │   │   └── handlers.ts             # Tool dispatch handler
 │   ├── hooks/
-│   │   ├── index.ts                # Hook dispatcher
+│   │   ├── index.ts                # Hook dispatcher + re-exports
+│   │   ├── format-helpers.ts       # Verbosity-aware formatters (v2.0)
+│   │   ├── rule-engine.ts          # User-configurable rules (v2.0)
 │   │   ├── session-start.ts        # Initialize DB, index code
 │   │   ├── user-prompt-submit.ts   # Analyze prompts, inject memories
 │   │   ├── permission-request.ts   # Auto-approve read-only tools
@@ -55,37 +58,39 @@ Claude-Matrix/
 │   │   ├── pre-tool-edit.ts        # File warnings (cursed files)
 │   │   ├── pre-compact.ts          # Session analysis before compaction
 │   │   ├── post-tool-bash.ts       # Log installs
+│   │   ├── prompt-utils.ts         # Prompt analysis utilities
 │   │   └── stop-session.ts         # Offer to save solutions
 │   ├── indexer/
 │   │   ├── index.ts                # Main indexer
 │   │   ├── parser.ts               # tree-sitter parsing
-│   │   ├── store.ts                # Index storage
-│   │   └── languages/              # Language-specific extractors
-│   │       ├── base.ts             # Base parser class
-│   │       ├── typescript.ts       # TS/JS
-│   │       ├── python.ts
-│   │       ├── go.ts
-│   │       ├── rust.ts
-│   │       ├── java.ts
-│   │       ├── kotlin.ts
-│   │       ├── swift.ts
-│   │       ├── csharp.ts
-│   │       ├── ruby.ts
-│   │       ├── php.ts
-│   │       ├── c.ts
-│   │       ├── cpp.ts
-│   │       ├── elixir.ts
-│   │       └── zig.ts
+│   │   ├── store.ts                # Index storage + find_callers
+│   │   └── languages/              # Language-specific extractors (15 langs)
 │   ├── repo/
 │   │   ├── fingerprint.ts          # Detect project type
 │   │   └── store.ts                # Repo CRUD
 │   ├── repomix/
 │   │   └── index.ts                # External repo packing
+│   ├── research/                   # Deep research (v2.0)
+│   │   ├── index.ts                # Research orchestration
+│   │   ├── types.ts                # Research types
+│   │   └── formatter.ts            # Markdown output formatter
 │   └── config/
-│       └── index.ts                # User configuration
+│       └── index.ts                # User configuration + verbosity + rules
 ├── hooks/
 │   └── hooks.json                  # Claude Code hook definitions
-├── commands/                       # Slash command definitions
+├── commands/                       # Slash commands (10 in v2.0)
+│   ├── list.md                     # /matrix:list (enhanced)
+│   ├── warn.md                     # /matrix:warn
+│   ├── export.md                   # /matrix:export
+│   ├── reindex.md                  # /matrix:reindex
+│   ├── repomix.md                  # /matrix:repomix
+│   ├── doctor.md                   # /matrix:doctor
+│   ├── review.md                   # /matrix:review (v2.0)
+│   ├── deep-research.md            # /matrix:deep-research (v2.0)
+│   ├── skill-candidates.md         # /matrix:skill-candidates (v2.0)
+│   └── create-skill.md             # /matrix:create-skill (v2.0)
+├── docs/
+│   └── proposals/                  # v2.0 architecture proposals
 ├── scripts/
 │   ├── build.ts                    # Build script
 │   ├── run-hooks.sh                # Hook runner
@@ -109,25 +114,32 @@ Claude-Matrix/
 | `matrix_failure` | Record an error and its fix | `idempotentHint` |
 | `matrix_status` | Get memory statistics | `readOnlyHint`, `delegable` |
 
-### Warning Tools
+### Warning Tool (v2.0 - Consolidated)
 
 | Tool | Purpose | Annotations |
 |------|---------|-------------|
-| `matrix_warn_check` | Check if file/package has warnings | `readOnlyHint`, `delegable` |
-| `matrix_warn_add` | Add a warning | `idempotentHint`, `delegable` |
-| `matrix_warn_remove` | Remove a warning | `destructiveHint`, `delegable` |
-| `matrix_warn_list` | List all warnings | `readOnlyHint`, `delegable` |
+| `matrix_warn` | Unified warning management | `delegable` |
+
+**Actions**: `check`, `add`, `remove`, `list` via `action` parameter.
 
 ### Code Index Tools
 
 | Tool | Purpose | Annotations |
 |------|---------|-------------|
 | `matrix_find_definition` | Find symbol definition | `readOnlyHint`, `delegable` |
+| `matrix_find_callers` | Find all files that use a symbol (v2.0) | `readOnlyHint`, `delegable` |
 | `matrix_search_symbols` | Search symbols by partial name | `readOnlyHint`, `delegable` |
 | `matrix_list_exports` | List exports from file/directory | `readOnlyHint`, `delegable` |
 | `matrix_get_imports` | Get imports for a file | `readOnlyHint`, `delegable` |
 | `matrix_index_status` | Get index status | `readOnlyHint`, `delegable` |
 | `matrix_reindex` | Trigger reindexing | `idempotentHint`, `delegable` |
+
+### Skill Factory Tools (v2.0)
+
+| Tool | Purpose | Annotations |
+|------|---------|-------------|
+| `matrix_skill_candidates` | Find solutions ready for skill promotion | `readOnlyHint`, `delegable` |
+| `matrix_link_skill` | Link solution to created skill | `idempotentHint` |
 
 ### Other Tools
 
@@ -139,12 +151,14 @@ Claude-Matrix/
 
 ### Delegable Tools (for Haiku sub-agents)
 
-These 13 tools are marked with `_meta.delegable: true`:
+These 11 tools are marked with `_meta.delegable: true`:
 ```
 matrix_recall, matrix_reward, matrix_status
-matrix_warn_check, matrix_warn_add, matrix_warn_remove, matrix_warn_list
-matrix_find_definition, matrix_search_symbols, matrix_list_exports, matrix_get_imports
+matrix_warn (all actions)
+matrix_find_definition, matrix_find_callers, matrix_search_symbols
+matrix_list_exports, matrix_get_imports
 matrix_index_status, matrix_reindex
+matrix_skill_candidates
 ```
 
 **Not delegable** (require Opus reasoning):
@@ -153,6 +167,7 @@ matrix_index_status, matrix_reindex
 - `matrix_prompt` - meta-analysis of prompts
 - `matrix_repomix` - complex two-phase flow
 - `matrix_doctor` - diagnostics interpretation
+- `matrix_link_skill` - needs skill creation context
 
 ---
 

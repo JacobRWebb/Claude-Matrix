@@ -253,6 +253,43 @@ function checkIndex(): DiagnosticCheck {
 }
 
 /**
+ * Check for deprecated tool names in config (v2.0 migration)
+ */
+function checkConfigMigration(): DiagnosticCheck {
+  const deprecatedTools = ['matrix_warn_add', 'matrix_warn_remove', 'matrix_warn_check', 'matrix_warn_list'];
+
+  try {
+    const config = getConfig();
+    const neverAutoApprove = config.hooks?.permissions?.neverAutoApprove ?? [];
+    const found = neverAutoApprove.filter((t: string) => deprecatedTools.includes(t));
+
+    if (found.length > 0) {
+      return {
+        name: 'Config Migration',
+        status: 'warn',
+        message: 'Deprecated tools in neverAutoApprove: ' + found.join(', ') + '. Use "matrix_warn" instead.',
+        autoFixable: true,
+        fixAction: 'Update deprecated tool names to v2.0 equivalents',
+      };
+    }
+
+    return {
+      name: 'Config Migration',
+      status: 'pass',
+      message: 'Config uses current tool names',
+      autoFixable: false,
+    };
+  } catch {
+    return {
+      name: 'Config Migration',
+      status: 'pass',
+      message: 'Config migration check skipped (config not loaded)',
+      autoFixable: false,
+    };
+  }
+}
+
+/**
  * Check repo fingerprinting
  */
 function checkRepoDetection(): DiagnosticCheck {
@@ -324,6 +361,27 @@ async function attemptFix(check: DiagnosticCheck): Promise<DiagnosticCheck> {
         saveConfig(mergedConfig); // Save merged config (preserves user settings)
         return { ...check, status: 'pass', fixed: true, message: 'Config updated (user settings preserved)' };
 
+      case 'Config Migration': {
+        // Update deprecated tool names to v2.0 equivalents
+        const deprecatedTools = ['matrix_warn_add', 'matrix_warn_remove', 'matrix_warn_check', 'matrix_warn_list'];
+        clearCache();
+        const config = getConfig();
+        const neverAutoApprove = config.hooks?.permissions?.neverAutoApprove ?? [];
+        const hasDeprecated = neverAutoApprove.some((t: string) => deprecatedTools.includes(t));
+
+        if (hasDeprecated && config.hooks?.permissions) {
+          // Remove deprecated, add unified tool if not present
+          const updated = neverAutoApprove.filter((t: string) => !deprecatedTools.includes(t));
+          if (!updated.includes('matrix_warn')) {
+            updated.push('matrix_warn');
+          }
+          config.hooks.permissions.neverAutoApprove = updated;
+          saveConfig(config);
+          return { ...check, status: 'pass', fixed: true, message: 'Updated deprecated tool names to matrix_warn' };
+        }
+        return check;
+      }
+
       case 'Code Index':
         await matrixReindex({ full: true });
         return { ...check, status: 'pass', fixed: true, message: 'Index rebuilt' };
@@ -391,6 +449,7 @@ export async function matrixDoctor(input: DoctorInput = {}): Promise<DoctorResul
     checkMatrixDir(),
     checkDatabase(),
     checkConfig(),
+    checkConfigMigration(),
     checkHooks(),
     checkIndex(),
     checkRepoDetection(),

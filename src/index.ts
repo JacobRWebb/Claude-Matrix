@@ -91,7 +91,7 @@ async function main(): Promise<void> {
   const instructions = buildInstructions();
 
   const server = new Server(
-    { name: 'matrix', version: '0.2.0' },
+    { name: 'matrix', version: '2.0.0' },
     {
       capabilities: {
         tools: {

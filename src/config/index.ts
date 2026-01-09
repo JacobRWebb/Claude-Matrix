@@ -245,7 +245,7 @@ export const DEFAULT_CONFIG: MatrixConfig = {
         matrixRead: true,    // matrix_recall, status, find_definition, etc.
         context7: true,      // resolve-library-id, query-docs
       },
-      neverAutoApprove: ['matrix_store', 'matrix_warn_add', 'matrix_warn_remove', 'matrix_failure'],
+      neverAutoApprove: ['matrix_store', 'matrix_warn', 'matrix_failure', 'matrix_link_skill'],
       additionalAutoApprove: [],
     },
 
@@ -345,10 +345,10 @@ export const DEFAULT_CONFIG: MatrixConfig = {
 
     // ─── Hook Verbosity (v2.0) ───
     // Controls token overhead of hook outputs
-    // 'full': Verbose multi-line format (backward compatible default)
-    // 'compact': Single-line formats (~80% token reduction)
+    // 'full': Verbose multi-line format
+    // 'compact': Single-line formats (~80% token reduction) - DEFAULT
     // 'minimal': Near-silent, only critical blockers shown
-    verbosity: 'full' as VerbosityLevel,
+    verbosity: 'compact' as VerbosityLevel,
   },
   indexing: {
     enabled: true,

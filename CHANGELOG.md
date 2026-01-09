@@ -2,6 +2,85 @@
 
 All notable changes to Claude Matrix are documented here.
 
+## [2.0.0] - 2025-01-09
+
+### Major Release - "Matrix v2"
+
+Comprehensive release consolidating all v2 proposals (MATRIX-001 through MATRIX-005) with architectural cleanups for a leaner, more powerful system.
+
+### Added
+
+#### Hook Verbosity System
+- **Configurable Output Verbosity** - New `hooks.verbosity` config: `'full'` | `'compact'` | `'minimal'`
+  - `full`: Verbose multi-line format (backward compatible default)
+  - `compact`: Single-line formats with ~80% token reduction
+  - `minimal`: Near-silent, only critical blockers shown
+- **New `format-helpers.ts`** - Centralized verbosity-aware formatters for all hook outputs
+- **Token Savings** - Compact mode reduces per-message overhead from ~500 to ~80 tokens
+
+#### Skill Factory (MATRIX-005)
+- **`matrix_skill_candidates`** - Find solutions ready for promotion to Claude Code Skills
+  - Ranks by: success rate, usage count, complexity
+  - Returns top candidates with skill template suggestions
+- **`matrix_link_skill`** - Link a solution to a Claude Code skill after promotion
+  - Tracks `promoted_to_skill` and `promoted_at` in database
+- **`/matrix:skill-candidates`** - View promotable solutions
+- **`/matrix:create-skill`** - Guided skill creation from a solution
+
+#### Code Review (MATRIX-002)
+- **`matrix_find_callers`** - Find all files that import/use a symbol (inverse of find_definition)
+  - Enables blast radius analysis for changes
+  - Returns: file, line, import type (named, default, namespace)
+- **`/matrix:review`** - 5-phase code review pipeline
+  1. Context Mapping (blast radius)
+  2. Intent Inference
+  3. Socratic Questioning
+  4. Targeted Investigation
+  5. Reflection & Consolidation
+
+#### Deep Research (MATRIX-004)
+- **`/matrix:deep-research`** - Multi-source research aggregation
+  - Depth levels: `quick`, `standard`, `exhaustive`
+  - Sources: WebSearch, Context7, matrix_recall, matrix_repomix
+  - Outputs polished markdown to `~/Downloads/`
+
+#### User-Configurable Rules (MATRIX-001)
+- **Rule Engine** - Custom pattern matching for tool events
+  - Events: `bash`, `edit`, `read`, `prompt`, `write`
+  - Actions: `block`, `warn`, `allow`
+  - Priority-based evaluation
+- **Config Section** - `hooks.userRules.rules[]` for custom rules
+- **Example Rules** - Block `rm -rf`, warn on `console.log` in edits
+
+### Changed
+
+#### Warn Tool Consolidation
+- **BREAKING**: Consolidated 4 warn tools into single `matrix_warn` with `action` parameter
+  - `matrix_warn({ action: 'check', type, target })` - Check for warnings
+  - `matrix_warn({ action: 'add', type, target, reason })` - Add warning
+  - `matrix_warn({ action: 'remove', id })` - Remove warning
+  - `matrix_warn({ action: 'list' })` - List warnings
+- **Exported Result Types** - `WarnCheckResult`, `WarnAddResult`, `WarnRemoveResult`, `WarnListResult`
+
+#### Command Consolidation
+- **BREAKING**: Removed `/matrix:verify` - Use `/matrix:doctor` instead
+- **BREAKING**: Removed `/matrix:stats` - Use `/matrix:list` instead (now includes stats)
+- **BREAKING**: Removed `/matrix:search` - Use `matrix_recall` directly
+- **Enhanced `/matrix:list`** - Now shows solutions, stats, and warnings in one command
+
+### Database Schema
+
+- **v4 Migration** - Added `promoted_to_skill` and `promoted_at` columns to solutions table
+
+### Stats
+
+- 40 files changed
+- +4,005 / -315 lines
+- 4 new commands, 3 removed
+- 3 new MCP tools, 3 removed (net: same count, cleaner API)
+
+---
+
 ## [1.2.2] - 2025-01-07
 
 ### Added

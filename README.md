@@ -25,13 +25,22 @@
 - **Doctor** - Comprehensive diagnostics with auto-fix
 - **Optimized** - Compact JSON, Haiku-delegable tools, MCP annotations
 
-## What's New in v1.2
+## What's New in v2.0
 
-- **Auto-Approve Hooks** - Read-only tools approved automatically (configurable)
-- **Sensitive File Detection** - Warns on `.env`, `.pem`, `secrets/`, etc.
-- **Session Analysis** - Extracts insights before context compaction
-- **`/matrix:doctor`** - Diagnose and auto-fix common issues
-- **Config Moved** - Now at `~/.claude/matrix/matrix.config` (auto-migrated)
+### Token Efficiency
+- **Hook Verbosity** - New `hooks.verbosity` config: `full` | `compact` | `minimal`
+- **Compact Mode** - ~80% token reduction in hook outputs
+- **Consolidated Warn Tool** - Single `matrix_warn` with `action` parameter
+
+### New Features
+- **Skill Factory** - Promote high-value solutions to Claude Code Skills
+- **Code Review** - 5-phase review pipeline with blast radius analysis
+- **Deep Research** - Multi-source research aggregation
+- **User Rules** - Custom pattern matching for tool events
+
+### Breaking Changes
+- Removed: `/matrix:verify`, `/matrix:stats`, `/matrix:search`
+- Changed: Warn tools consolidated into single `matrix_warn`
 
 See [CHANGELOG.md](CHANGELOG.md) for full details.
 
@@ -85,6 +94,7 @@ Multi-language code navigation (auto-indexed on session start):
 | Tool | Purpose |
 |------|---------|
 | `matrix_find_definition` | Find where a symbol is defined |
+| `matrix_find_callers` | Find all files that import/use a symbol (v2.0) |
 | `matrix_search_symbols` | Search symbols by partial name |
 | `matrix_list_exports` | List exports from file/directory |
 | `matrix_get_imports` | Get imports for a file |
@@ -98,10 +108,21 @@ Track problematic files and packages:
 
 | Tool | Purpose |
 |------|---------|
-| `matrix_warn_check` | Check if file/package has warnings |
-| `matrix_warn_add` | Mark something as problematic |
-| `matrix_warn_remove` | Remove a warning |
-| `matrix_warn_list` | List all warnings |
+| `matrix_warn` | Unified warning management (check/add/remove/list via `action` parameter) |
+
+```javascript
+// Check for warnings
+matrix_warn({ action: 'check', type: 'file', target: 'src/legacy.ts' })
+
+// Add a warning
+matrix_warn({ action: 'add', type: 'package', target: 'moment', reason: 'Deprecated' })
+
+// Remove a warning
+matrix_warn({ action: 'remove', id: 'warn_abc123' })
+
+// List all warnings
+matrix_warn({ action: 'list' })
+```
 
 ### Repomix
 
@@ -134,6 +155,17 @@ Up-to-date library documentation (bundled):
 |------|---------|
 | `matrix_doctor` | Run diagnostics and auto-fix issues |
 
+### Skill Factory (v2.0)
+
+Promote high-value solutions to Claude Code Skills:
+
+| Tool | Purpose |
+|------|---------|
+| `matrix_skill_candidates` | Find solutions ready for skill promotion |
+| `matrix_link_skill` | Link a solution to a created skill |
+
+The Skill Factory identifies solutions with high success rates and usage counts, suggesting them for promotion to reusable Claude Code Skills.
+
 ## Automatic Hooks
 
 Matrix runs automatically in the background:
@@ -154,15 +186,18 @@ Matrix runs automatically in the background:
 
 | Command | Purpose |
 |---------|---------|
-| `/matrix:search <query>` | Search solutions |
-| `/matrix:list` | List stored solutions |
-| `/matrix:stats` | Show statistics |
+| `/matrix:list` | List solutions, stats, and warnings |
 | `/matrix:warn` | Manage warnings |
 | `/matrix:export` | Export database |
-| `/matrix:verify` | Check installation |
 | `/matrix:reindex` | Reindex repository |
 | `/matrix:repomix` | Pack external repo for context |
 | `/matrix:doctor` | Run diagnostics and auto-fix |
+| `/matrix:review` | 5-phase code review (v2.0) |
+| `/matrix:deep-research` | Multi-source research (v2.0) |
+| `/matrix:skill-candidates` | View promotable solutions (v2.0) |
+| `/matrix:create-skill` | Create skill from solution (v2.0) |
+
+**Removed in v2.0:** `/matrix:search` (use `matrix_recall`), `/matrix:stats` (merged into `/matrix:list`), `/matrix:verify` (use `/matrix:doctor`)
 
 ## Performance
 
@@ -178,21 +213,23 @@ All 18 tools include official MCP hints for smarter handling:
 |------------|-------|---------|
 | `readOnlyHint` | 11 | No side effects, just queries |
 | `idempotentHint` | 6 | Safe to retry on failure |
-| `destructiveHint` | 1 | Deletes data (warn_remove) |
+| `destructiveHint` | 1 | Deletes data (warn with remove action) |
 | `openWorldHint` | 1 | External API (repomix) |
 
 ### Haiku Delegation
 
-13 tools marked as `delegable` for sub-agent routing via MCP server instructions:
+11 tools marked as `delegable` for sub-agent routing via MCP server instructions:
 
 ```
 matrix_recall, matrix_reward, matrix_status
-matrix_warn_check, matrix_warn_add, matrix_warn_remove, matrix_warn_list
-matrix_find_definition, matrix_search_symbols, matrix_list_exports, matrix_get_imports
+matrix_warn (all actions)
+matrix_find_definition, matrix_find_callers, matrix_search_symbols
+matrix_list_exports, matrix_get_imports
 matrix_index_status, matrix_reindex
+matrix_skill_candidates
 ```
 
-These are read-only/simple operations - the model just passes parameters, server does the work. Non-delegable tools (`matrix_store`, `matrix_failure`, `matrix_prompt`, `matrix_repomix`, `matrix_doctor`) require Opus reasoning.
+These are read-only/simple operations - the model just passes parameters, server does the work. Non-delegable tools (`matrix_store`, `matrix_failure`, `matrix_prompt`, `matrix_repomix`, `matrix_doctor`, `matrix_link_skill`) require Opus reasoning.
 
 **Example:** Haiku 4.5 sub-agent executing `matrix_recall`:
 
@@ -213,6 +250,7 @@ Matrix creates config at `~/.claude/matrix/matrix.config` on first run:
   },
   "hooks": {
     "enabled": true,
+    "verbosity": "full",
     "permissions": {
       "autoApproveReadOnly": true,
       "autoApprove": {
@@ -229,8 +267,35 @@ Matrix creates config at `~/.claude/matrix/matrix.config` on first run:
     "preCompact": {
       "enabled": true,
       "behavior": "suggest"
+    },
+    "userRules": {
+      "enabled": true,
+      "rules": []
     }
   }
+}
+```
+
+### Verbosity Levels (v2.0)
+
+| Level | Description | Token Overhead |
+|-------|-------------|----------------|
+| `full` | Verbose multi-line format (default) | ~500 tokens/msg |
+| `compact` | Single-line formats | ~80 tokens/msg |
+| `minimal` | Near-silent, critical only | ~20 tokens/msg |
+
+### User Rules (v2.0)
+
+Add custom rules to `hooks.userRules.rules[]`:
+
+```json
+{
+  "name": "block-rm-rf",
+  "enabled": true,
+  "event": "bash",
+  "pattern": "rm\\s+-rf\\s+/",
+  "action": "block",
+  "message": "Dangerous rm command blocked"
 }
 ```
 

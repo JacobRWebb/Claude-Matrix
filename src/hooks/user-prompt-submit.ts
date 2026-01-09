@@ -179,7 +179,18 @@ function formatContext(
   if (verbosity === 'full') {
     const words = result.split(/\s+/);
     if (words.length > MAX_CONTEXT_WORDS) {
-      return words.slice(0, MAX_CONTEXT_WORDS).join(' ') + '\n[Truncated...]';
+      const truncated = words.slice(0, MAX_CONTEXT_WORDS).join(' ');
+      // Try to truncate at sentence boundary for cleaner output
+      const lastSentenceEnd = Math.max(
+        truncated.lastIndexOf('. '),
+        truncated.lastIndexOf('! '),
+        truncated.lastIndexOf('? ')
+      );
+      // Only use sentence boundary if it's within the last 30% of content
+      if (lastSentenceEnd > truncated.length * 0.7) {
+        return truncated.slice(0, lastSentenceEnd + 1) + '\n[Truncated...]';
+      }
+      return truncated + '\n[Truncated...]';
     }
   }
 

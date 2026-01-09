@@ -136,7 +136,8 @@ export function matrixSkillCandidates(input: SkillCandidatesInput = {}): SkillCa
       promoted_to_skill
     FROM solutions
     WHERE uses >= ?
-      AND (successes * 1.0 / NULLIF(uses, 0)) >= ?
+      AND uses > 0
+      AND (successes * 1.0 / uses) >= ?
   `;
 
   const params: (number | string)[] = [minUses, minScore];

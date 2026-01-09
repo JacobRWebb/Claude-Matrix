@@ -118,7 +118,18 @@ function getCurrentVersion(db: Database): number {
           SELECT name FROM sqlite_master WHERE type='table' AND name IN ('warnings', 'dependency_installs', 'session_summaries', 'api_cache')
         `).all() as { name: string }[];
 
-        const hasAllV2Tables = v2Tables.every(t => existingTables.some(e => e.name === t));
+        let hasAllV2Tables = v2Tables.every(t => existingTables.some(e => e.name === t));
+
+        // Validate table integrity - verify tables are actually accessible
+        if (hasAllV2Tables) {
+          try {
+            // Quick query to verify v2 tables are not corrupted
+            db.query('SELECT 1 FROM warnings LIMIT 1').get();
+          } catch {
+            // Tables exist but may be corrupted, treat as v1
+            hasAllV2Tables = false;
+          }
+        }
 
         // Check for v3 and v4 columns
         let hasV3Columns = false;

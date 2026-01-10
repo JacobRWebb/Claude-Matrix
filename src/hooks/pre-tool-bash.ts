@@ -1,13 +1,11 @@
 #!/usr/bin/env bun
 /**
- * PreToolUse:Bash Hook (Package Auditor)
+ * PreToolUse:Bash Hook (Package Auditor + Pre-Commit Review)
  *
  * Runs before Bash tool executes.
- * Detects package install commands and audits packages for:
- *   - CVEs (via OSV.dev)
- *   - Bundle size (via Bundlephobia, npm only)
- *   - Deprecation status (via npm registry)
- *   - Local warnings (Matrix database)
+ * Features:
+ *   - Pre-commit code review: Suggests Matrix review before git/jj commits
+ *   - Package auditing: CVEs, bundle size, deprecation, local warnings
  *
  * Exit codes:
  *   0 = Success (allows tool to proceed)
@@ -28,6 +26,23 @@ import {
   type Ecosystem,
 } from './index.js';
 import { matrixWarn, type WarnCheckResult, type WarnResult } from '../tools/warn.js';
+import { getConfig } from '../config/index.js';
+import { evaluateBashRules, formatRuleResult } from './rule-engine.js';
+
+/**
+ * Check if command is a git or jj commit
+ */
+function isCommitCommand(command: string): { isCommit: boolean; vcs: 'git' | 'jj' | null } {
+  // Git: git commit, git commit -m, git commit -am, git commit --amend, etc.
+  if (/^\s*git\s+commit\b/.test(command)) {
+    return { isCommit: true, vcs: 'git' };
+  }
+  // Jujutsu: jj commit, jj describe (creates new commit), jj new (creates new change)
+  if (/^\s*jj\s+(commit|describe|new)\b/.test(command)) {
+    return { isCommit: true, vcs: 'jj' };
+  }
+  return { isCommit: false, vcs: null };
+}
 
 /**
  * Type guard to check if a WarnResult is a WarnCheckResult
@@ -254,7 +269,54 @@ export async function run() {
       process.exit(0);
     }
 
-    // Parse package command
+    // ============================================
+    // STEP 1: Evaluate user-defined rules
+    // ============================================
+    const ruleResult = evaluateBashRules(command);
+
+    if (ruleResult.blocked) {
+      const output: HookOutput = {
+        hookSpecificOutput: {
+          hookEventName: 'PreToolUse',
+          permissionDecision: 'deny',
+          permissionDecisionReason: formatRuleResult(ruleResult),
+        },
+      };
+      outputJson(output);
+      process.exit(0);
+    }
+
+    if (ruleResult.warned) {
+      // Warnings don't block, but we could log them
+      console.error(formatRuleResult(ruleResult));
+    }
+
+    // ============================================
+    // STEP 2: Pre-commit review suggestion
+    // ============================================
+    const config = getConfig();
+    const gitReviewConfig = config.hooks.gitCommitReview;
+    const commitCheck = isCommitCommand(command);
+
+    if (gitReviewConfig?.enabled && commitCheck.isCommit) {
+      const depth = gitReviewConfig.depth ?? 'standard';
+      const vcsName = commitCheck.vcs === 'jj' ? 'Jujutsu' : 'Git';
+
+      // Suggest review before commit (non-blocking)
+      const output: HookOutput = {
+        hookSpecificOutput: {
+          hookEventName: 'PreToolUse',
+          additionalContext: `[Matrix] ${vcsName} commit detected. Consider running a code review first:\n\n/matrix:review staged ${depth}\n\nThis helps catch issues before they're committed.`,
+        },
+      };
+
+      outputJson(output);
+      process.exit(0);
+    }
+
+    // ============================================
+    // STEP 3: Package auditing
+    // ============================================
     const parsed = parsePackageCommand(command);
     if (!parsed || parsed.packages.length === 0) {
       // Not a package install command

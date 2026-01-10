@@ -101,6 +101,15 @@ export interface PromptAnalysisConfig {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// Pre-Commit Review Config
+// ═══════════════════════════════════════════════════════════════
+export interface GitCommitReviewConfig {
+  enabled: boolean;
+  /** Review depth: 'quick' | 'standard' | 'thorough' */
+  depth: 'quick' | 'standard' | 'thorough';
+}
+
+// ═══════════════════════════════════════════════════════════════
 // User-Configurable Rules (v2.0)
 // ═══════════════════════════════════════════════════════════════
 export type RuleEvent = 'bash' | 'edit' | 'read' | 'prompt' | 'write';
@@ -147,6 +156,7 @@ export interface HooksConfig {
   packageAuditor: PackageAuditorConfig;
   cursedFiles: CursedFilesConfig;
   promptAnalysis: PromptAnalysisConfig;
+  gitCommitReview: GitCommitReviewConfig;
   // v2.0 User Rules
   userRules: UserRulesConfig;
   // v2.0 Hook Verbosity
@@ -315,6 +325,13 @@ export const DEFAULT_CONFIG: MatrixConfig = {
         maxFailures: 2,
         minScore: 0.35,
       },
+    },
+
+    // ─── Pre-Commit Review (PreToolUse:Bash hook) ───
+    // Triggers Matrix review before git/jj commits
+    gitCommitReview: {
+      enabled: true,
+      depth: 'standard' as const,
     },
 
     // ─── User Rules (v2.0) ───

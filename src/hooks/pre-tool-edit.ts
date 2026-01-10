@@ -19,6 +19,7 @@ import {
   type HookOutput,
 } from './index.js';
 import { matrixWarn, type WarnCheckResult } from '../tools/warn.js';
+import { evaluateEditRules, formatRuleResult } from './rule-engine.js';
 
 export async function run() {
   try {
@@ -36,7 +37,36 @@ export async function run() {
       process.exit(0);
     }
 
-    // Check for file warnings
+    // Get content for pattern matching (Edit has old_string/new_string, Write has content)
+    const content = (input.tool_input.new_string as string) ||
+                    (input.tool_input.content as string) ||
+                    '';
+
+    // ============================================
+    // STEP 1: Evaluate user-defined rules
+    // ============================================
+    const ruleResult = evaluateEditRules(filePath, content);
+
+    if (ruleResult.blocked) {
+      const output: HookOutput = {
+        hookSpecificOutput: {
+          hookEventName: 'PreToolUse',
+          permissionDecision: 'deny',
+          permissionDecisionReason: formatRuleResult(ruleResult),
+        },
+      };
+      outputJson(output);
+      process.exit(0);
+    }
+
+    if (ruleResult.warned) {
+      // Warnings don't block, but log them
+      console.error(formatRuleResult(ruleResult));
+    }
+
+    // ============================================
+    // STEP 2: Check for file warnings (cursed files)
+    // ============================================
     const result = await matrixWarn({
       action: 'check',
       type: 'file',

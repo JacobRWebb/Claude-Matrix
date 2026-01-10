@@ -2,6 +2,48 @@
 
 All notable changes to Claude Matrix are documented here.
 
+## [2.0.1] - 2025-01-09
+
+### Added
+
+#### Greptile-Style Code Review Output
+- **Enhanced `/matrix:review`** - New output format inspired by Greptile
+  - Summary with 2-3 sentence overview
+  - Key Changes bullet list
+  - Critical Issues Found with numbered, detailed explanations
+  - Additional Issues for minor items
+  - Positive Aspects for good patterns
+  - **Confidence Score (1-5)** with explanation
+  - **Important Files Changed** table with per-file scores (1-5)
+  - Detailed File Analysis section
+
+#### Pre-Commit Code Review
+- **PreToolUse:Bash Hook** - Suggests Matrix review BEFORE commits
+  - Detects `git commit` and `jj commit/describe/new` commands
+  - Prompts Claude to consider running `/matrix:review staged [depth]`
+  - Non-blocking suggestion to catch issues before they're committed
+- **Jujutsu (jj) Support** - Works with both Git and Jujutsu VCS
+- **New Config** - `hooks.gitCommitReview`
+  - `enabled`: Toggle feature on/off (default: true)
+  - `depth`: Review depth - `'quick'` | `'standard'` | `'thorough'` (default: `'standard'`)
+
+### Fixed
+
+- **Rule Engine Integration** - User-defined rules now properly evaluated in all hooks
+  - `PreToolUse:Edit` - Evaluates edit rules before cursed file checks
+  - `PreToolUse:Read` - Evaluates read rules before sensitive file detection
+  - `UserPromptSubmit` - Evaluates prompt rules at start of analysis
+  - Previously, rules were only evaluated in `PreToolUse:Bash`
+
+### Changed
+
+- **Deep Research Save Location** - Now saves to session directory
+  - Primary: `$CLAUDE_SESSION_DIR/matrix-research-[slug]-[timestamp].md`
+  - Fallback: `./matrix-research-[slug]-[timestamp].md` (current working directory)
+  - Previously saved to `~/Downloads/`
+
+---
+
 ## [2.0.0] - 2025-01-09
 
 ### Major Release - "Matrix v2"

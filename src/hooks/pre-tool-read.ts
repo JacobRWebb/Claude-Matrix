@@ -30,6 +30,7 @@ import {
 } from './index.js';
 import { getConfig, type SensitiveFilesConfig } from '../config/index.js';
 import { matrixWarn, type WarnCheckResult } from '../tools/warn.js';
+import { evaluateReadRules, formatRuleResult } from './rule-engine.js';
 
 // ═══════════════════════════════════════════════════════════════
 // Sensitive File Patterns
@@ -193,18 +194,42 @@ export async function run() {
     // Read input from stdin
     const input = await readStdin<PreToolUseInput>();
 
-    // Get config
-    const config = getConfig();
-    const sensitiveConfig = config.hooks.sensitiveFiles;
-
-    // Skip if disabled
-    if (!sensitiveConfig.enabled || sensitiveConfig.behavior === 'disabled') {
-      process.exit(0);
-    }
-
     // Get file path from tool input
     const filePath = input.tool_input.file_path as string | undefined;
     if (!filePath) {
+      process.exit(0);
+    }
+
+    // ============================================
+    // STEP 1: Evaluate user-defined rules (always runs)
+    // ============================================
+    const ruleResult = evaluateReadRules(filePath);
+
+    if (ruleResult.blocked) {
+      const output: HookOutput = {
+        hookSpecificOutput: {
+          hookEventName: 'PreToolUse',
+          permissionDecision: 'deny',
+          permissionDecisionReason: formatRuleResult(ruleResult),
+        },
+      };
+      outputJson(output);
+      process.exit(0);
+    }
+
+    if (ruleResult.warned) {
+      // Warnings don't block, but log them
+      console.error(formatRuleResult(ruleResult));
+    }
+
+    // ============================================
+    // STEP 2: Check for sensitive patterns (if enabled)
+    // ============================================
+    const config = getConfig();
+    const sensitiveConfig = config.hooks.sensitiveFiles;
+
+    // Skip sensitive file checks if disabled
+    if (!sensitiveConfig.enabled || sensitiveConfig.behavior === 'disabled') {
       process.exit(0);
     }
 

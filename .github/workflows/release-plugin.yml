@@ -164,11 +164,20 @@ jobs:
         id: changelog
         run: |
           VERSION="${{ needs.check-release.outputs.version }}"
-          # Extract changelog section for this version
-          CHANGELOG=$(awk "/^## \[$VERSION\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md)
+          # Extract changelog for current version AND previous version for context
+          # count=0: not started, count=1: current version, count=2: previous version
+          CHANGELOG=$(awk '
+            /^## \[/ {
+              count++
+              if (count == 1) { print "# What'\''s New in v'"$VERSION"'"; print ""; next }
+              if (count == 2) { print ""; print "---"; print ""; print "# Previous Release"; print ""; }
+              if (count > 2) { exit }
+            }
+            count >= 1 && count <= 2 { print }
+          ' CHANGELOG.md)
           # Write to file for multiline content
           echo "$CHANGELOG" > /tmp/changelog.md
-          echo "Changelog for v$VERSION:"
+          echo "Changelog for v$VERSION (with previous release):"
           cat /tmp/changelog.md
 
       - name: Create plugin archive

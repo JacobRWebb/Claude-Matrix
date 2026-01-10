@@ -102,7 +102,9 @@ Generate a polished markdown document:
 ...
 ```
 
-Save to: `~/Downloads/matrix-research-[slug]-[timestamp].md`
+Save to session directory: Use `$CLAUDE_SESSION_DIR/matrix-research-[slug]-[timestamp].md`
+
+If `$CLAUDE_SESSION_DIR` is not available, fall back to current working directory: `./matrix-research-[slug]-[timestamp].md`
 
 ## Examples
 

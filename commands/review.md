@@ -121,38 +121,77 @@ For each concern from Phase 3:
 
 ### Phase 5: Reflection & Consolidation
 
-Generate final review output:
+Generate final review output in Greptile-style format:
 
-1. **Prioritize findings**
-   - Critical: Must fix before merge
-   - Important: Should fix, may defer
-   - Suggestion: Nice to have improvements
-   - Praise: Things done well
+1. **Calculate Confidence Score (1-5)**
+   - 5/5: No issues, ready to merge
+   - 4/5: Minor suggestions only, approve with optional changes
+   - 3/5: Some issues that should be addressed but not blocking
+   - 2/5: Important issues that need attention before merge
+   - 1/5: Critical bugs or issues that will cause incorrect behavior
 
-2. **Format review comments**
+2. **Format review output**
+
 ```markdown
-## Code Review Summary
+# Matrix Review
 
-**Change Type:** [bugfix|feature|refactor|...]
-**Blast Radius:** [low|medium|high] - [N] files directly affected
-**Overall Assessment:** [Approve|Request Changes|Comment]
+## Summary
+[2-3 sentence overview of what this PR/change does and its purpose]
 
-### Critical Issues
-- [File:Line] Issue description
-  Suggestion: How to fix
+## Key Changes
+- [Change 1]: Brief description
+- [Change 2]: Brief description
+- [Change 3]: Brief description
 
-### Important Items
-- [File:Line] Issue description
-  Suggestion: How to improve
+## Critical Issues Found
 
-### Suggestions
-- [File:Line] Suggestion description
+### 1. [Issue Title]
+[Detailed explanation of the issue, why it's critical, and what behavior it will cause]
 
-### What's Done Well
-- [Positive observation]
+### 2. [Issue Title]
+[Detailed explanation]
+
+## Additional Issues
+- [Minor issue 1]
+- [Minor issue 2]
+
+## Positive Aspects
+- [Good practice observed]
+- [Well-implemented pattern]
+
+## Confidence Score: [N]/5
+
+[Explanation of why this score was given, referencing the critical issues]
+
+**Files requiring attention:** [file1.ts] (critical issue #1), [file2.ts] (critical issue #2)
+
+---
+
+## Important Files Changed
+
+| Filename | Score | Overview |
+|----------|-------|----------|
+| path/to/file1.ts | 2/5 | Brief description of issues in this file |
+| path/to/file2.ts | 1/5 | Brief description of critical issues |
+| path/to/file3.ts | 5/5 | No issues found, clean implementation |
+
+### File Analysis
+
+#### `path/to/file1.ts` — Score: 2/5
+[Detailed analysis of this file's changes, issues found, and suggestions]
+
+#### `path/to/file2.ts` — Score: 1/5
+[Detailed analysis of this file's changes, issues found, and suggestions]
 ```
 
-3. **Learning loop**
+3. **Scoring Guidelines per File**
+   - 5/5: No issues, clean implementation
+   - 4/5: Minor style or documentation suggestions
+   - 3/5: Some improvements recommended
+   - 2/5: Has bugs or significant issues
+   - 1/5: Critical bugs that will cause incorrect behavior
+
+4. **Learning loop**
    - If reviewer spots a pattern that should be remembered:
      Use `matrix_store` to save for future reviews
    - If a recalled solution helped:

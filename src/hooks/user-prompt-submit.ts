@@ -40,6 +40,7 @@ import {
   type SolutionData,
   type FailureData,
 } from './format-helpers.js';
+import { evaluatePromptRules, formatRuleResult } from './rule-engine.js';
 
 const MAX_CONTEXT_WORDS = 500;
 
@@ -210,6 +211,26 @@ export async function run() {
     // Get config
     const config = getHooksConfig();
     const threshold = config.complexityThreshold ?? 5;
+
+    // ============================================
+    // STEP 0: Evaluate user-defined prompt rules
+    // ============================================
+    const ruleResult = evaluatePromptRules(input.prompt);
+
+    if (ruleResult.blocked) {
+      outputJson({
+        hookSpecificOutput: {
+          permissionDecision: 'deny',
+          permissionDecisionReason: formatRuleResult(ruleResult),
+        },
+      });
+      process.exit(0);
+    }
+
+    if (ruleResult.warned) {
+      // Warnings don't block, but log them
+      console.error(formatRuleResult(ruleResult));
+    }
 
     // ============================================
     // STEP 1: Run Prompt Agent analysis FIRST

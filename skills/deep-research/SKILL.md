@@ -3,7 +3,6 @@ name: Matrix Deep Research
 description: This skill should be used when the user asks to "research a topic", "deep research", "investigate thoroughly", "multi-source research", "comprehensive analysis", or needs to conduct research across web, documentation, and memory sources.
 user-invocable: true
 context: fork
-agent: sonnet
 allowed-tools:
   - WebSearch
   - WebFetch

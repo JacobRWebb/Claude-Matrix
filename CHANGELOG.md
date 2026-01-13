@@ -12,9 +12,9 @@ All notable changes to Claude Matrix are documented here.
   - Edit skills without restarting Claude Code
   - Progressive disclosure with `references/` for complex skills
 
-- **Model Selection** - Intelligent agent assignment for cost optimization
-  - `haiku` for simple operations: doctor, reindex, list, export, warn, skill-candidates
-  - `sonnet` for complex operations: repomix, create-skill, deep-research, review
+- **Model Delegation** - Intelligent agent assignment for cost optimization
+  - Default (opus) for complex operations: repomix, create-skill, deep-research, review
+  - `agent: haiku` for simple operations: doctor, reindex, list, export, warn, skill-candidates
   - Estimated ~40-50% cost reduction for simple operations
 
 - **Context Isolation** - Fork mode for unbiased analysis

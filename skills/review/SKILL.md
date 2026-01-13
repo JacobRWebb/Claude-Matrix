@@ -3,7 +3,6 @@ name: Matrix Code Review
 description: This skill should be used when the user asks to "review this code", "review PR", "code review", "review staged changes", "blast radius analysis", "check impact of changes", or needs comprehensive context-aware code review.
 user-invocable: true
 context: fork
-agent: sonnet
 allowed-tools:
   - mcp__plugin_matrix_matrix__matrix_find_callers
   - mcp__plugin_matrix_matrix__matrix_find_definition

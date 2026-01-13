@@ -2,7 +2,6 @@
 name: Create Skill from Matrix Solution
 description: This skill should be used when the user asks to "create a skill from solution", "promote solution to skill", "convert matrix solution", "make skill from solution", or wants to transform a Matrix solution into a reusable Claude Code Skill.
 user-invocable: true
-agent: sonnet
 allowed-tools:
   - mcp__plugin_matrix_matrix__matrix_recall
   - mcp__plugin_matrix_matrix__matrix_link_skill

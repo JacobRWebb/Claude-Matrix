@@ -6,7 +6,7 @@
 
 **Persistent Memory & Tooling for Claude Code**
 
-[![Version](https://img.shields.io/badge/v2.0.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/v2.0.2-blue.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![LLM Reference](https://img.shields.io/badge/LLM-reference-purple.svg)](docs/reference-for-llms.md)

@@ -186,7 +186,7 @@ jobs:
 
           # Copy plugin structure
           cp -r .claude-plugin dist/matrix/
-          cp -r commands dist/matrix/
+          cp -r skills dist/matrix/
           cp -r hooks dist/matrix/
           cp -r scripts dist/matrix/
           cp -r bin dist/matrix/

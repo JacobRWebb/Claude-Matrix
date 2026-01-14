@@ -5,7 +5,7 @@
  * These run asynchronously and update job status via the manager.
  */
 
-import { updateJob } from './manager.js';
+import { updateJob, updateJobPid } from './manager.js';
 import { indexRepository } from '../indexer/index.js';
 import { getRepoInfo } from '../tools/index-tools.js';
 import { toolRegistry } from '../tools/registry.js';
@@ -109,9 +109,14 @@ export function spawnBackgroundJob(
   // The worker script handles the actual execution
   const workerScript = new URL('./worker-entry.ts', import.meta.url).pathname;
 
-  Bun.spawn(['bun', 'run', workerScript, workerName, jobId, JSON.stringify(input)], {
+  const proc = Bun.spawn(['bun', 'run', workerScript, workerName, jobId, JSON.stringify(input)], {
     stdio: ['ignore', 'ignore', 'ignore'],
     // Detach from parent process
     detached: true,
   });
+
+  // Store PID for orphan cleanup tracking
+  if (proc.pid) {
+    updateJobPid(jobId, proc.pid);
+  }
 }

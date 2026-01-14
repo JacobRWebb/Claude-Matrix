@@ -23,6 +23,7 @@ export interface Job {
   input: unknown | null;
   result: unknown | null;
   error: string | null;
+  pid: number | null;
   createdAt: string;
   startedAt: string | null;
   completedAt: string | null;
@@ -75,7 +76,7 @@ export function getJob(jobId: string): Job | null {
 
   const row = db.query(`
     SELECT id, tool_name, status, progress_percent, progress_message,
-           input, result, error, created_at, started_at, completed_at
+           input, result, error, pid, created_at, started_at, completed_at
     FROM background_jobs
     WHERE id = ?
   `).get(jobId) as {
@@ -87,6 +88,7 @@ export function getJob(jobId: string): Job | null {
     input: string | null;
     result: string | null;
     error: string | null;
+    pid: number | null;
     created_at: string;
     started_at: string | null;
     completed_at: string | null;
@@ -103,6 +105,7 @@ export function getJob(jobId: string): Job | null {
     input: row.input ? JSON.parse(row.input) : null,
     result: row.result ? JSON.parse(row.result) : null,
     error: row.error,
+    pid: row.pid,
     createdAt: row.created_at,
     startedAt: row.started_at,
     completedAt: row.completed_at,
@@ -188,7 +191,7 @@ export function listJobs(status?: JobStatus, limit = 50): Job[] {
 
   let query = `
     SELECT id, tool_name, status, progress_percent, progress_message,
-           input, result, error, created_at, started_at, completed_at
+           input, result, error, pid, created_at, started_at, completed_at
     FROM background_jobs
   `;
 
@@ -211,6 +214,7 @@ export function listJobs(status?: JobStatus, limit = 50): Job[] {
     input: string | null;
     result: string | null;
     error: string | null;
+    pid: number | null;
     created_at: string;
     started_at: string | null;
     completed_at: string | null;
@@ -225,6 +229,7 @@ export function listJobs(status?: JobStatus, limit = 50): Job[] {
     input: row.input ? JSON.parse(row.input) : null,
     result: row.result ? JSON.parse(row.result) : null,
     error: row.error,
+    pid: row.pid,
     createdAt: row.created_at,
     startedAt: row.started_at,
     completedAt: row.completed_at,
@@ -244,4 +249,53 @@ export function cleanupOldJobs(): number {
   `).run();
 
   return result.changes;
+}
+
+/**
+ * Update a job's PID after spawning
+ *
+ * @param jobId - Job ID to update
+ * @param pid - Process ID of the spawned worker
+ */
+export function updateJobPid(jobId: string, pid: number): void {
+  const db = getDb();
+  db.query('UPDATE background_jobs SET pid = ? WHERE id = ?').run(pid, jobId);
+}
+
+/**
+ * Clean up orphaned processes from previous sessions
+ *
+ * Checks if running/queued jobs have live processes. If the process
+ * doesn't exist, marks the job as failed. This should be called on startup.
+ *
+ * @returns Number of orphaned jobs cleaned up
+ */
+export function cleanupOrphanedProcesses(): number {
+  const db = getDb();
+
+  const running = db
+    .query(
+      `
+    SELECT id, pid FROM background_jobs
+    WHERE status IN ('queued', 'running') AND pid IS NOT NULL
+  `
+    )
+    .all() as { id: string; pid: number }[];
+
+  let cleaned = 0;
+  for (const job of running) {
+    try {
+      // Signal 0 checks if process exists without killing it
+      process.kill(job.pid, 0);
+    } catch {
+      // Process doesn't exist - mark as failed
+      updateJob(job.id, {
+        status: 'failed',
+        error: 'Process terminated unexpectedly (orphaned)',
+      });
+      cleaned++;
+    }
+  }
+
+  return cleaned;
 }

@@ -160,6 +160,7 @@ CREATE TABLE IF NOT EXISTS background_jobs (
     input JSON,
     result JSON,
     error TEXT,
+    pid INTEGER,                        -- process ID for orphan cleanup
     created_at TEXT DEFAULT (datetime('now')),
     started_at TEXT,
     completed_at TEXT

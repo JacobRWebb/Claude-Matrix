@@ -11,6 +11,8 @@ export {
   cancelJob,
   listJobs,
   cleanupOldJobs,
+  updateJobPid,
+  cleanupOrphanedProcesses,
   type Job,
   type JobStatus,
   type JobUpdate,

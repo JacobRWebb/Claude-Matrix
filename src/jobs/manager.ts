@@ -118,7 +118,7 @@ export function getJob(jobId: string): Job | null {
 export function updateJob(jobId: string, updates: JobUpdate): void {
   const db = getDb();
   const sets: string[] = [];
-  const values: unknown[] = [];
+  const values: (string | number | null)[] = [];
 
   if (updates.status !== undefined) {
     sets.push('status = ?');
@@ -192,7 +192,7 @@ export function listJobs(status?: JobStatus, limit = 50): Job[] {
     FROM background_jobs
   `;
 
-  const params: unknown[] = [];
+  const params: (string | number)[] = [];
 
   if (status) {
     query += ' WHERE status = ?';

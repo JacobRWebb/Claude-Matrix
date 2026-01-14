@@ -17,7 +17,9 @@ async function main() {
     process.exit(1);
   }
 
-  const [workerName, jobId, inputJson] = args;
+  const workerName = args[0]!;
+  const jobId = args[1]!;
+  const inputJson = args[2];
   const input = inputJson ? JSON.parse(inputJson) : {};
 
   try {

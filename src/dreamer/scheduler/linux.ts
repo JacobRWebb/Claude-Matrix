@@ -184,8 +184,13 @@ export class LinuxScheduler extends BaseScheduler {
    * Set the user's crontab content
    */
   private async setCrontab(content: string): Promise<void> {
-    // Use echo and pipe to crontab - safer than temp files
-    const escapedContent = content.replace(/'/g, "'\\''");
-    await execAsync(`echo '${escapedContent}' | crontab -`);
+    // Write to temp file to avoid shell escaping issues entirely
+    const tmpFile = join(homedir(), '.claude', 'matrix', 'dreamer', '.crontab.tmp');
+    writeFileSync(tmpFile, content, 'utf-8');
+    try {
+      await execAsync(`crontab ${shellEscape(tmpFile)}`);
+    } finally {
+      unlinkSync(tmpFile);
+    }
   }
 }
